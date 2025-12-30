@@ -525,7 +525,11 @@ export default function SecurityVerificationPage() {
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '12px', borderBottom: '1px solid #e5e7eb' }}>
                     <span style={{ color: '#6b7280', fontSize: '14px' }}>Vehicle Type</span>
-                    <span style={{ fontWeight: '600', fontSize: '14px', color: '#111827' }}>{entryPreview.entry?.vehicleType}</span>
+                    <span style={{ fontWeight: '600', fontSize: '14px', color: '#111827' }}>
+                      {typeof entryPreview.entry?.vehicleType === 'string' 
+                        ? entryPreview.entry?.vehicleType 
+                        : entryPreview.entry?.vehicleType?.name}
+                    </span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                     <span style={{ color: '#6b7280', fontSize: '14px' }}>Expires</span>
