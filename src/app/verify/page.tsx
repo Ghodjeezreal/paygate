@@ -31,40 +31,10 @@ export default function SecurityVerificationPage() {
   const [loadingPreview, setLoadingPreview] = useState(false);
   const [rejectionNote, setRejectionNote] = useState("");
   const [userFullName, setUserFullName] = useState("");
-  const [isOnline, setIsOnline] = useState(true);
-  const [offlineQRData, setOfflineQRData] = useState<any>(null);
 
   useEffect(() => {
     fetchUser();
-    checkApiStatus();
-    
-    const interval = setInterval(checkApiStatus, 5000); // Check every 5 seconds
-    
-    return () => clearInterval(interval);
   }, []);
-
-  const checkApiStatus = async () => {
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000);
-      
-      const response = await fetch('/api/health', { 
-        signal: controller.signal,
-        cache: 'no-store'
-      });
-      
-      clearTimeout(timeoutId);
-      
-      if (response.ok) {
-        setIsOnline(true);
-      } else {
-        setIsOnline(false);
-      }
-    } catch (error) {
-      console.log('Health check failed:', error);
-      setIsOnline(false);
-    }
-  };
 
   const fetchUser = async () => {
     try {
@@ -99,47 +69,13 @@ export default function SecurityVerificationPage() {
     try {
       // Try to parse QR code JSON data
       const data = JSON.parse(decodedText);
-      
-      // Check if QR contains full entry data (offline mode)
-      if (data.resident && data.expires) {
-        setOfflineQRData(data);
-        setReference(data.ref || data.paymentReference || decodedText);
-        // Show offline preview immediately
-        showOfflinePreview(data);
-      } else {
-        setReference(data.ref || data.paymentReference || decodedText);
-      }
+      setReference(data.ref || data.paymentReference || decodedText);
       setScanMode('manual');
     } catch {
       // If not JSON, treat as plain reference
       setReference(decodedText);
       setScanMode('manual');
     }
-  };
-
-  const showOfflinePreview = (qrData: any) => {
-    const now = new Date();
-    const expiresAt = new Date(qrData.expires);
-    const isExpired = now > expiresAt;
-    
-    setEntryPreview({
-      success: !isExpired,
-      entry: {
-        id: qrData.id,
-        paymentReference: qrData.ref,
-        residentName: qrData.resident,
-        vendorCompany: qrData.vendor,
-        address: qrData.address,
-        vehiclePlateNumber: qrData.plate,
-        vehicleType: { name: qrData.vehicleType },
-        fee: qrData.fee,
-        paymentStatus: qrData.status,
-        expiresAt: qrData.expires,
-        passStatus: qrData.passStatus
-      },
-      isExpired,
-      offline: true
-    });
   };
 
   const onScanError = (error: any) => {
@@ -167,11 +103,8 @@ export default function SecurityVerificationPage() {
       });
 
       const data = await response.json();
-      console.log('Preview response:', data);
-      console.log('Response status:', response.status);
       
       if (response.ok && data.entry) {
-        console.log('Entry data:', data.entry);
         setEntryPreview(data);
       } else {
         alert(data.error || 'Entry not found');
@@ -223,45 +156,6 @@ export default function SecurityVerificationPage() {
             entry: entryPreview.entry
           });
         }
-        setEntryPreview(null);
-        setVerifying(false);
-        return;
-      }
-
-      const response = await fetch("/api/verify-entry", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          reference: reference.trim(), 
-          securityAgent: securityAgent.trim(),
-          approve: true
-        }),
-      });
-
-      const data = await response.json();
-      setResult(data);
-      setEntryPreview(null);
-    } catch (error) {
-      console.error("Approval failed:", error);
-      alert("Approval failed. Please try again.");
-    } finally {
-      setVerifying(false);
-    }
-  };
-
-  const handleReject = async () => {
-    if (!rejectionNote.trim()) {
-      alert('Please enter a reason for rejection');
-      return;
-    }
-
-    setVerifying(true);
-
-    try {
-      const response = await fetch("/api/verify-entry", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
           reference: reference.trim(), 
           securityAgent: securityAgent.trim(),
           forceReject: true,
@@ -293,32 +187,6 @@ export default function SecurityVerificationPage() {
       <Header showLogout={true} userFullName={userFullName} />
 
       <main style={{ maxWidth: '600px', margin: '0 auto', padding: '24px 16px' }}>
-        {/* Online/Offline Status Indicator */}
-        <div style={{
-          position: 'fixed',
-          top: '80px',
-          right: '20px',
-          zIndex: 1000,
-          padding: '8px 16px',
-          borderRadius: '20px',
-          backgroundColor: isOnline ? '#10b981' : '#f59e0b',
-          color: 'white',
-          fontSize: '12px',
-          fontWeight: 'bold',
-          boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '6px'
-        }}>
-          <div style={{
-            width: '8px',
-            height: '8px',
-            borderRadius: '50%',
-            backgroundColor: 'white'
-          }} />
-          {isOnline ? 'Online' : 'Offline Mode'}
-        </div>
-
         {/* Header */}
         <div style={{ 
           background: 'linear-gradient(135deg, #059669 0%, #047857 100%)', 
@@ -524,38 +392,30 @@ export default function SecurityVerificationPage() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '24px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '12px', borderBottom: '1px solid #e5e7eb' }}>
                     <span style={{ color: '#6b7280', fontSize: '14px' }}>Resident</span>
-                    <span style={{ fontWeight: '600', fontSize: '14px', color: '#111827' }}>{entryPreview.entry?.residentName || 'N/A'}</span>
+                    <span style={{ fontWeight: '600', fontSize: '14px', color: '#111827' }}>{entryPreview.entry?.residentName}</span>
                   </div>
-                  {entryPreview.entry?.vendorCompany && (
-                    <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '12px', borderBottom: '1px solid #e5e7eb' }}>
-                      <span style={{ color: '#6b7280', fontSize: '14px' }}>Vendor</span>
-                      <span style={{ fontWeight: '600', fontSize: '14px', color: '#111827' }}>{entryPreview.entry.vendorCompany}</span>
-                    </div>
-                  )}
-                  {entryPreview.entry?.address && (
-                    <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '12px', borderBottom: '1px solid #e5e7eb' }}>
-                      <span style={{ color: '#6b7280', fontSize: '14px' }}>Address</span>
-                      <span style={{ fontWeight: '600', fontSize: '14px', color: '#111827', textAlign: 'right' }}>{entryPreview.entry.address}</span>
-                    </div> || 'N/A'}</span>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '12px', borderBottom: '1px solid #e5e7eb' }}>
+                    <span style={{ color: '#6b7280', fontSize: '14px' }}>Vendor</span>
+                    <span style={{ fontWeight: '600', fontSize: '14px', color: '#111827' }}>{entryPreview.entry?.vendorCompany}</span>
                   </div>
-                  {entryPreview.entry?.vehicleType && (
-                    <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '12px', borderBottom: '1px solid #e5e7eb' }}>
-                      <span style={{ color: '#6b7280', fontSize: '14px' }}>Vehicle Type</span>
-                      <span style={{ fontWeight: '600', fontSize: '14px', color: '#111827' }}>
-                        {typeof entryPreview.entry.vehicleType === 'string' 
-                          ? entryPreview.entry.vehicleType 
-                          : entryPreview.entry.vehicleType?.name || 'N/A'}
-                      </span>
-                    </div>
-                  )}
-                  {entryPreview.entry?.expiresAt && (
-                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span style={{ color: '#6b7280', fontSize: '14px' }}>Expires</span>
-                      <span style={{ fontWeight: '600', fontSize: '14px', color: '#111827' }}>
-                        {new Date(entryPreview.entry.expiresAt).toLocaleString()}
-                      </span>
-                    </div>
-                  )}n style={{ color: '#6b7280', fontSize: '14px' }}>Expires</span>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '12px', borderBottom: '1px solid #e5e7eb' }}>
+                    <span style={{ color: '#6b7280', fontSize: '14px' }}>Address</span>
+                    <span style={{ fontWeight: '600', fontSize: '14px', color: '#111827', textAlign: 'right' }}>{entryPreview.entry?.address}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '12px', borderBottom: '1px solid #e5e7eb' }}>
+                    <span style={{ color: '#6b7280', fontSize: '14px' }}>Vehicle Plate</span>
+                    <span style={{ fontWeight: '600', fontSize: '18px', color: '#059669' }}>{entryPreview.entry?.vehiclePlateNumber}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '12px', borderBottom: '1px solid #e5e7eb' }}>
+                    <span style={{ color: '#6b7280', fontSize: '14px' }}>Vehicle Type</span>
+                    <span style={{ fontWeight: '600', fontSize: '14px', color: '#111827' }}>
+                      {typeof entryPreview.entry?.vehicleType === 'string' 
+                        ? entryPreview.entry?.vehicleType 
+                        : entryPreview.entry?.vehicleType?.name}
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ color: '#6b7280', fontSize: '14px' }}>Expires</span>
                     <span style={{ fontWeight: '600', fontSize: '14px', color: '#111827' }}>
                       {new Date(entryPreview.entry?.expiresAt).toLocaleString()}
                     </span>
@@ -584,22 +444,7 @@ export default function SecurityVerificationPage() {
                     }}
                   />
                 </div>
-
-                {/* Action Buttons */}
-                <div style={{ display: 'flex', gap: '12px' }}>
-                  <button
-                    onClick={handleApprove}
-                    disabled={verifying}
-                    style={{
-                      flex: 1,
-                      padding: '16px',
-                      borderRadius: '12px',
-                      fontWeight: 'bold',
-                      fontSize: '16px',
-                      color: 'white',
-                      backgroundColor: '#059669',
-                      border: 'none',
-                      cursor: verifying ? 'not-allowed' : 'pointer',
+      cursor: verifying ? 'not-allowed' : 'pointer',
                       opacity: verifying ? 0.5 : 1,
                       display: 'flex',
                       alignItems: 'center',
