@@ -167,8 +167,11 @@ export default function SecurityVerificationPage() {
       });
 
       const data = await response.json();
+      console.log('Preview response:', data);
+      console.log('Response status:', response.status);
       
       if (response.ok && data.entry) {
+        console.log('Entry data:', data.entry);
         setEntryPreview(data);
       } else {
         alert(data.error || 'Entry not found');
@@ -521,30 +524,38 @@ export default function SecurityVerificationPage() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '24px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '12px', borderBottom: '1px solid #e5e7eb' }}>
                     <span style={{ color: '#6b7280', fontSize: '14px' }}>Resident</span>
-                    <span style={{ fontWeight: '600', fontSize: '14px', color: '#111827' }}>{entryPreview.entry?.residentName}</span>
+                    <span style={{ fontWeight: '600', fontSize: '14px', color: '#111827' }}>{entryPreview.entry?.residentName || 'N/A'}</span>
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '12px', borderBottom: '1px solid #e5e7eb' }}>
-                    <span style={{ color: '#6b7280', fontSize: '14px' }}>Vendor</span>
-                    <span style={{ fontWeight: '600', fontSize: '14px', color: '#111827' }}>{entryPreview.entry?.vendorCompany}</span>
+                  {entryPreview.entry?.vendorCompany && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '12px', borderBottom: '1px solid #e5e7eb' }}>
+                      <span style={{ color: '#6b7280', fontSize: '14px' }}>Vendor</span>
+                      <span style={{ fontWeight: '600', fontSize: '14px', color: '#111827' }}>{entryPreview.entry.vendorCompany}</span>
+                    </div>
+                  )}
+                  {entryPreview.entry?.address && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '12px', borderBottom: '1px solid #e5e7eb' }}>
+                      <span style={{ color: '#6b7280', fontSize: '14px' }}>Address</span>
+                      <span style={{ fontWeight: '600', fontSize: '14px', color: '#111827', textAlign: 'right' }}>{entryPreview.entry.address}</span>
+                    </div> || 'N/A'}</span>
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '12px', borderBottom: '1px solid #e5e7eb' }}>
-                    <span style={{ color: '#6b7280', fontSize: '14px' }}>Address</span>
-                    <span style={{ fontWeight: '600', fontSize: '14px', color: '#111827', textAlign: 'right' }}>{entryPreview.entry?.address}</span>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '12px', borderBottom: '1px solid #e5e7eb' }}>
-                    <span style={{ color: '#6b7280', fontSize: '14px' }}>Vehicle Plate</span>
-                    <span style={{ fontWeight: '600', fontSize: '18px', color: '#059669' }}>{entryPreview.entry?.vehiclePlateNumber}</span>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '12px', borderBottom: '1px solid #e5e7eb' }}>
-                    <span style={{ color: '#6b7280', fontSize: '14px' }}>Vehicle Type</span>
-                    <span style={{ fontWeight: '600', fontSize: '14px', color: '#111827' }}>
-                      {typeof entryPreview.entry?.vehicleType === 'string' 
-                        ? entryPreview.entry?.vehicleType 
-                        : entryPreview.entry?.vehicleType?.name}
-                    </span>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span style={{ color: '#6b7280', fontSize: '14px' }}>Expires</span>
+                  {entryPreview.entry?.vehicleType && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '12px', borderBottom: '1px solid #e5e7eb' }}>
+                      <span style={{ color: '#6b7280', fontSize: '14px' }}>Vehicle Type</span>
+                      <span style={{ fontWeight: '600', fontSize: '14px', color: '#111827' }}>
+                        {typeof entryPreview.entry.vehicleType === 'string' 
+                          ? entryPreview.entry.vehicleType 
+                          : entryPreview.entry.vehicleType?.name || 'N/A'}
+                      </span>
+                    </div>
+                  )}
+                  {entryPreview.entry?.expiresAt && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ color: '#6b7280', fontSize: '14px' }}>Expires</span>
+                      <span style={{ fontWeight: '600', fontSize: '14px', color: '#111827' }}>
+                        {new Date(entryPreview.entry.expiresAt).toLocaleString()}
+                      </span>
+                    </div>
+                  )}n style={{ color: '#6b7280', fontSize: '14px' }}>Expires</span>
                     <span style={{ fontWeight: '600', fontSize: '14px', color: '#111827' }}>
                       {new Date(entryPreview.entry?.expiresAt).toLocaleString()}
                     </span>
