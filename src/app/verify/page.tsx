@@ -46,16 +46,22 @@ export default function SecurityVerificationPage() {
   const checkApiStatus = async () => {
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 2000);
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
       
-      await fetch('/api/health', { 
+      const response = await fetch('/api/health', { 
         signal: controller.signal,
         cache: 'no-store'
       });
       
       clearTimeout(timeoutId);
-      setIsOnline(true);
+      
+      if (response.ok) {
+        setIsOnline(true);
+      } else {
+        setIsOnline(false);
+      }
     } catch (error) {
+      console.log('Health check failed:', error);
       setIsOnline(false);
     }
   };
@@ -161,7 +167,13 @@ export default function SecurityVerificationPage() {
       });
 
       const data = await response.json();
-      setEntryPreview(data);
+      
+      if (response.ok && data.entry) {
+        setEntryPreview(data);
+      } else {
+        alert(data.error || 'Entry not found');
+        setEntryPreview(null);
+      }
     } catch (error) {
       console.error("Failed to fetch entry:", error);
       alert("Failed to fetch entry details. Please try again.");
