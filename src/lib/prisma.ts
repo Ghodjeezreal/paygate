@@ -1,4 +1,4 @@
-import { PrismaClient } from '../../src/generated/prisma/client';
+import { PrismaClient } from '../generated/prisma/client';
 
 const prismaClientSingleton = () => {
   const accelerateUrl = process.env.DATABASE_URL;

@@ -54,14 +54,14 @@ export async function GET(request: NextRequest) {
     });
 
     // Calculate totals
-    const singleEntries = entries.filter(e => !e.passPurchaseId);
-    const singleEntryRevenue = singleEntries.reduce((sum, entry) => sum + entry.vehicleType.fee, 0);
-    const passRevenue = passPurchases.reduce((sum, purchase) => sum + purchase.passPackage.price, 0);
+    const singleEntries = entries.filter((e: typeof entries[0]) => !e.passPurchaseId);
+    const singleEntryRevenue = singleEntries.reduce((sum: number, entry: typeof singleEntries[0]) => sum + entry.vehicleType.fee, 0);
+    const passRevenue = passPurchases.reduce((sum: number, purchase: typeof passPurchases[0]) => sum + purchase.passPackage.price, 0);
     const totalRevenue = singleEntryRevenue + passRevenue;
 
     // Group by vehicle type
     const byVehicleType = Object.values(
-      entries.reduce((acc: any, entry) => {
+      entries.reduce((acc: any, entry: typeof entries[0]) => {
         const type = entry.vehicleType.name;
         if (!acc[type]) {
           acc[type] = {
@@ -81,7 +81,7 @@ export async function GET(request: NextRequest) {
 
     // Group by date
     const byDate = Object.values(
-      entries.reduce((acc: any, entry) => {
+      entries.reduce((acc: any, entry: typeof entries[0]) => {
         const date = entry.createdAt.toISOString().split('T')[0];
         if (!acc[date]) {
           acc[date] = {
@@ -99,9 +99,9 @@ export async function GET(request: NextRequest) {
     ).sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
     // Add pass purchase revenue to the correct dates
-    passPurchases.forEach(purchase => {
+    passPurchases.forEach((purchase: typeof passPurchases[0]) => {
       const date = purchase.createdAt.toISOString().split('T')[0];
-      const dayData = (byDate as any[]).find(d => d.date === date);
+      const dayData = (byDate as any[]).find((d: any) => d.date === date);
       if (dayData) {
         dayData.revenue += purchase.passPackage.price;
       } else {
@@ -114,7 +114,7 @@ export async function GET(request: NextRequest) {
     });
 
     // Recent entries for table
-    const recentEntries = entries.slice(0, 20).map(entry => ({
+    const recentEntries = entries.slice(0, 20).map((entry: typeof entries[0]) => ({
       id: entry.id,
       residentName: entry.residentName,
       vehicleType: entry.vehicleType.name,
