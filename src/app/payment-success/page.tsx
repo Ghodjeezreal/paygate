@@ -223,8 +223,8 @@ function PaymentSuccessContent() {
             Download QR Code
           </button>
           
-          <Link
-            href="/"
+          <a
+            href="https://testvgcpora.vercel.app"
             style={{
               width: '100%',
               padding: '16px 24px',
@@ -241,7 +241,7 @@ function PaymentSuccessContent() {
             }}
           >
             Back to Home
-          </Link>
+          </a>
         </div>
       </main>
     </div>

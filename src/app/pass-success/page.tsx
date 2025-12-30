@@ -186,8 +186,8 @@ function PassSuccessContent() {
           My Passes
         </button>
         
-        <button
-          onClick={() => router.push("/")}
+        <a
+          href="https://testvgcpora.vercel.app"
           style={{
             flex: 1,
             padding: '16px',
@@ -201,12 +201,13 @@ function PassSuccessContent() {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            gap: '8px'
+            gap: '8px',
+            textDecoration: 'none'
           }}
         >
           <Home style={{ width: '20px', height: '20px' }} />
           Home
-        </button>
+        </a>
       </div>
     </>
   );
