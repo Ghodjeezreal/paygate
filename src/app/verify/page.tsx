@@ -122,40 +122,40 @@ export default function SecurityVerificationPage() {
     setVerifying(true);
 
     try {
-      // If offline and QR data available, allow offline approval
-      if (!isOnline && offlineQRData) {
-        const now = new Date();
-        const expiresAt = new Date(offlineQRData.expires);
-        
-        if (now > expiresAt) {
-          setResult({
-            allowed: false,
-            reason: 'This entry has expired'
-          });
-        } else if (offlineQRData.status !== 'PAID') {
-          setResult({
-            allowed: false,
-            reason: 'Payment not confirmed'
-          });
-        } else {
-          // Store offline approval for later sync
-          const offlineApproval = {
-            reference: offlineQRData.ref,
-            securityAgent: securityAgent.trim(),
-            timestamp: new Date().toISOString(),
-            plate: offlineQRData.plate
-          };
-          
-          // Save to localStorage for sync when online
-          const pending = JSON.parse(localStorage.getItem('pendingApprovals') || '[]');
-          pending.push(offlineApproval);
-          localStorage.setItem('pendingApprovals', JSON.stringify(pending));
-          
-          setResult({
-            allowed: true,
-            entry: entryPreview.entry
-          });
-        }
+      const response = await fetch("/api/verify-entry", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          reference: reference.trim(), 
+          securityAgent: securityAgent.trim(),
+          approve: true
+        }),
+      });
+
+      const data = await response.json();
+      setResult(data);
+      setEntryPreview(null);
+    } catch (error) {
+      console.error("Approval failed:", error);
+      alert("Approval failed. Please try again.");
+    } finally {
+      setVerifying(false);
+    }
+  };
+
+  const handleReject = async () => {
+    if (!rejectionNote.trim()) {
+      alert('Please enter a reason for rejection');
+      return;
+    }
+
+    setVerifying(true);
+
+    try {
+      const response = await fetch("/api/verify-entry", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
           reference: reference.trim(), 
           securityAgent: securityAgent.trim(),
           forceReject: true,
@@ -206,7 +206,6 @@ export default function SecurityVerificationPage() {
           </div>
           <p style={{ fontSize: '14px', opacity: 0.9, margin: 0 }}>
             Scan or enter pass reference to verify entry
-            {!isOnline && ' (Offline: Scan QR code only)'}
           </p>
         </div>
 
@@ -444,7 +443,22 @@ export default function SecurityVerificationPage() {
                     }}
                   />
                 </div>
-      cursor: verifying ? 'not-allowed' : 'pointer',
+
+                {/* Action Buttons */}
+                <div style={{ display: 'flex', gap: '12px' }}>
+                  <button
+                    onClick={handleApprove}
+                    disabled={verifying}
+                    style={{
+                      flex: 1,
+                      padding: '16px',
+                      borderRadius: '12px',
+                      fontWeight: 'bold',
+                      fontSize: '16px',
+                      color: 'white',
+                      backgroundColor: '#059669',
+                      border: 'none',
+                      cursor: verifying ? 'not-allowed' : 'pointer',
                       opacity: verifying ? 0.5 : 1,
                       display: 'flex',
                       alignItems: 'center',
