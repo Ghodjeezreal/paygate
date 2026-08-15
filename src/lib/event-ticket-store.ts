@@ -469,8 +469,15 @@ export async function updateEvent(id: string, input: UpdateEventInput): Promise<
   const nextTicketTypes = normalizeTicketTypes(input.ticketTypes ?? normalizeStoredTicketTypes(current.ticketTypes), isTicketless);
   const nextColors = normalizeEventColors(input.colors ?? (input.color ? [input.color] : current.colors ?? ['#c8a047']));
   const nextCircleOptions = normalizeCircleOptions(input.circleOptions ?? current.circleOptions ?? ['Family', 'Friends of the Family', 'Church Family']);
-  const nextShareSlugCandidate = normalizeShareSlug(input.shareSlug) ?? normalizeShareSlug(current.shareSlug) ?? normalizeShareSlug(current.title) ?? undefined;
-  const nextShareSlug = nextShareSlugCandidate ? await generateUniqueShareSlug(nextShareSlugCandidate) : undefined;
+  const nextShareSlug = (() => {
+    if (input.shareSlug !== undefined) {
+      const explicit = normalizeShareSlug(input.shareSlug);
+      return explicit ? generateUniqueShareSlug(explicit) : undefined;
+    }
+
+    return normalizeShareSlug(current.shareSlug) ?? undefined;
+  })();
+  const resolvedNextShareSlug = await nextShareSlug;
   const next: EventItem = {
     ...toEventItem(current),
     title: input.title?.trim() || current.title,
@@ -481,7 +488,7 @@ export async function updateEvent(id: string, input: UpdateEventInput): Promise<
     colors: nextColors,
     circleOptions: nextCircleOptions,
     color: nextColors[0],
-    shareSlug: nextShareSlug,
+    shareSlug: resolvedNextShareSlug,
     status: input.status?.trim() || current.status || 'published',
     eventType,
     heroHeading: input.heroHeading?.trim() ?? current.heroHeading ?? current.title,
@@ -524,7 +531,7 @@ export async function updateEvent(id: string, input: UpdateEventInput): Promise<
       image: next.image,
       colors: next.colors,
       circleOptions: next.circleOptions,
-      shareSlug: next.shareSlug,
+      shareSlug: resolvedNextShareSlug,
       status: next.status,
       eventType: next.eventType,
       heroHeading: next.heroHeading,
