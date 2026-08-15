@@ -627,7 +627,7 @@ export async function createTicket(input: {
   buyerPhone?: string;
   quantity: number;
 }): Promise<TicketRecord> {
-  const event = await getEventById(input.eventId);
+  const event = (await getEventById(input.eventId)) || (await getEventByShareSlug(input.eventId));
   if (!event) {
     throw new Error('Event not found');
   }

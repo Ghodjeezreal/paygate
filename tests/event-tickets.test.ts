@@ -155,4 +155,27 @@ describe('event ticket helpers', () => {
     assert.equal(ticket.buyerPhone, '+2348000000001');
     assert.equal(getTicketByReference(ticket.reference)?.buyerPhone, '+2348000000001');
   });
+
+  it('allows ticket registration using a custom share slug instead of the event id', async () => {
+    const event = await createEvent({
+      title: 'Custom Link Event',
+      description: 'This event is being registered from a custom share link.',
+      venue: 'Lakeside Hall',
+      date: '2027-04-10T18:30:00.000Z',
+      status: 'published',
+      shareSlug: 'custom-link-event',
+      ticketTypes: [{ id: 'vip', name: 'VIP', price: 0, quantity: 25 }],
+    });
+
+    const ticket = await createTicket({
+      eventId: event.shareSlug || event.id,
+      ticketTypeId: 'vip',
+      buyerName: 'Alan Turing',
+      buyerEmail: 'alan@example.com',
+      quantity: 1,
+    });
+
+    assert.equal(ticket.eventId, event.id);
+    assert.equal(ticket.approvalStatus, 'PENDING');
+  });
 });
