@@ -9,7 +9,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Reference is required' }, { status: 400 });
     }
 
-    const ticket = getTicketByReference(String(reference).trim());
+    const ticket = await getTicketByReference(String(reference).trim());
     if (!ticket) {
       return NextResponse.json({ error: 'Ticket not found', allowed: false }, { status: 404 });
     }
@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
     }
 
     if (forceReject) {
-      const rejectedTicket = rejectTicket(ticket.reference);
+      const rejectedTicket = await rejectTicket(ticket.reference);
       return NextResponse.json({
         allowed: false,
         reason: rejectionNote || 'Ticket manually rejected by security',
@@ -95,7 +95,7 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    const checkedIn = checkInTicket(ticket.reference, securityAgent.trim());
+    const checkedIn = await checkInTicket(ticket.reference, securityAgent.trim());
     return NextResponse.json({
       allowed: true,
       ticket: checkedIn ? {

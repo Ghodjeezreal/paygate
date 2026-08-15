@@ -21,5 +21,6 @@ export async function POST(req: NextRequest) {
 }
 
 export async function GET() {
-  return NextResponse.json({ tickets: getTickets() });
+  const tickets = await getTickets();
+  return NextResponse.json({ tickets });
 }

@@ -5,7 +5,7 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const statusFilter = searchParams.get('status')?.toUpperCase();
 
-  let tickets = getTickets();
+  let tickets = await getTickets();
 
   if (statusFilter && statusFilter !== 'ALL') {
     tickets = tickets.filter((ticket) => ticket.approvalStatus === statusFilter);

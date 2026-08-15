@@ -107,7 +107,7 @@ describe('event ticket helpers', () => {
     assert.equal(ticket.qrCode, '');
   });
 
-  it('persists created ticket registrations to disk so the success page can recover them after approval', async () => {
+  it('persists created ticket registrations so the success page can recover them after approval', async () => {
     const event = await createEvent({
       title: 'Persisted Invite Event',
       description: 'Invitees must still be findable after a reload.',
@@ -125,12 +125,10 @@ describe('event ticket helpers', () => {
       quantity: 1,
     });
 
-    const persistedFile = path.join(process.cwd(), 'data', 'event-tickets.json');
-    const saved = JSON.parse(fs.readFileSync(persistedFile, 'utf8'));
-
-    assert.ok(Array.isArray(saved));
-    assert.ok(saved.some((item) => item.reference === ticket.reference));
-    assert.ok(getTicketByReference(ticket.reference));
+    const byReference = await getTicketByReference(ticket.reference);
+    assert.ok(byReference);
+    assert.equal(byReference?.reference, ticket.reference);
+    assert.equal(byReference?.buyerEmail, 'grace@example.com');
   });
 
   it('stores the invitee phone number with the registration so it can appear in admin lists', async () => {
@@ -153,7 +151,8 @@ describe('event ticket helpers', () => {
     });
 
     assert.equal(ticket.buyerPhone, '+2348000000001');
-    assert.equal(getTicketByReference(ticket.reference)?.buyerPhone, '+2348000000001');
+    const persisted = await getTicketByReference(ticket.reference);
+    assert.equal(persisted?.buyerPhone, '+2348000000001');
   });
 
   it('allows ticket registration using a custom share slug instead of the event id', async () => {

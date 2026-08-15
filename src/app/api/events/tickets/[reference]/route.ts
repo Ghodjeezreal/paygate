@@ -3,7 +3,7 @@ import { approveTicket, deleteTicket, getTicketByReference, rejectTicket } from 
 
 export async function GET(_request: Request, { params }: { params: Promise<{ reference: string }> }) {
   const { reference } = await params;
-  const ticket = getTicketByReference(decodeURIComponent(reference));
+  const ticket = await getTicketByReference(decodeURIComponent(reference));
 
   if (!ticket) {
     return NextResponse.json({ error: 'Ticket not found' }, { status: 404 });
@@ -25,7 +25,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ ref
   }
 
   if (body.action === 'reject') {
-    const ticket = rejectTicket(decodeURIComponent(reference));
+    const ticket = await rejectTicket(decodeURIComponent(reference));
     if (!ticket) {
       return NextResponse.json({ error: 'Ticket not found' }, { status: 404 });
     }
@@ -37,7 +37,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ ref
 
 export async function DELETE(_request: Request, { params }: { params: Promise<{ reference: string }> }) {
   const { reference } = await params;
-  const deletedTicket = deleteTicket(decodeURIComponent(reference));
+  const deletedTicket = await deleteTicket(decodeURIComponent(reference));
 
   if (!deletedTicket) {
     return NextResponse.json({ error: 'Ticket not found' }, { status: 404 });

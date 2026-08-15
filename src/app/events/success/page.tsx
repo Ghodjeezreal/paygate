@@ -9,6 +9,7 @@ import type { TicketRecord } from '@/lib/event-ticket-store';
 function TicketSuccessContent() {
   const searchParams = useSearchParams();
   const reference = searchParams.get('reference') || '';
+  const hideHeader = searchParams.get('share') !== null || searchParams.get('hideHeader') === '1';
   const [ticket, setTicket] = useState<TicketRecord | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -59,7 +60,7 @@ function TicketSuccessContent() {
   if (!ticket) {
     return (
       <div style={{ minHeight: '100vh', backgroundColor: '#f3f4f6' }}>
-        <Header showBackButton={true} />
+        <Header showBackButton={!hideHeader} hideGlobalHeader={hideHeader} />
         <main style={{ maxWidth: '760px', margin: '0 auto', padding: '24px 16px' }}>
           <div style={{ backgroundColor: 'white', borderRadius: '16px', padding: '24px', boxShadow: '0 4px 10px rgba(0,0,0,0.06)' }}>
             <h1 style={{ fontSize: '28px', marginBottom: '8px' }}>Registration Submitted</h1>
@@ -79,7 +80,7 @@ function TicketSuccessContent() {
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#f3f4f6' }}>
-      <Header showBackButton={true} />
+      <Header showBackButton={!hideHeader} hideGlobalHeader={hideHeader} />
       <main style={{ maxWidth: '760px', margin: '0 auto', padding: '24px 16px' }}>
         <div style={{ backgroundColor: 'white', borderRadius: '16px', padding: '24px', boxShadow: '0 4px 10px rgba(0,0,0,0.06)' }}>
           <h1 style={{ fontSize: '28px', marginBottom: '8px' }}>{isApproved ? 'Ticket Confirmed' : 'Registration Submitted'}</h1>

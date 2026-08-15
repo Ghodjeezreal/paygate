@@ -11,12 +11,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Reference is required' }, { status: 400 });
     }
 
-    const existing = getTicketByReference(reference);
+    const existing = await getTicketByReference(reference);
     if (!existing) {
       return NextResponse.json({ error: 'Ticket not found' }, { status: 404 });
     }
 
-    const ticket = checkInTicket(reference, checkedInBy);
+    const ticket = await checkInTicket(reference, checkedInBy);
     return NextResponse.json({ ticket, success: true });
   } catch (error) {
     console.error('Failed to check in ticket', error);

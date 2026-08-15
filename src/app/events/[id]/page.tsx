@@ -138,7 +138,14 @@ export default function EventDetailPage() {
     setSubmitting(false);
 
     if (response.ok) {
-      router.push(`/events/success?reference=${data.ticket.reference}`);
+      const params = new URLSearchParams({ reference: data.ticket.reference });
+      if (hideHeader || searchParams.get('share') !== null) {
+        params.set('hideHeader', '1');
+      }
+      if (searchParams.get('share') !== null) {
+        params.set('share', '1');
+      }
+      router.push(`/events/success?${params.toString()}`);
     } else {
       alert(data.error || 'Unable to purchase ticket');
     }

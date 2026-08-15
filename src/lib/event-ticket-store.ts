@@ -215,6 +215,34 @@ function normalizeShareSlug(value?: string | null): string | undefined {
     .slice(0, 60) || undefined;
 }
 
+async function generateUniqueShareSlug(value?: string | null): Promise<string | undefined> {
+  const base = normalizeShareSlug(value);
+  if (!base) {
+    return undefined;
+  }
+
+  const makeCandidate = (suffix: string) => {
+    const trimmedBase = base.slice(0, Math.max(1, 60 - suffix.length - 1));
+    return `${trimmedBase}-${suffix}`.replace(/-+/g, '-').replace(/^-+|-+$/g, '');
+  };
+
+  let candidate = base;
+  for (let attempt = 0; attempt < 10; attempt += 1) {
+    const existing = await prisma.event.findUnique({ where: { shareSlug: candidate } });
+    if (!existing) {
+      return candidate;
+    }
+
+    const suffix = `${attempt + 1}-${Math.random().toString(36).slice(2, 7)}`;
+    candidate = makeCandidate(suffix);
+  }
+
+  return `${base}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`
+    .replace(/-+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 60) || undefined;
+}
+
 function getDefaultEventContent(eventType: EventType) {
   if (eventType === 'funeral') {
     return {
@@ -388,7 +416,8 @@ export async function createEvent(input: CreateEventInput): Promise<EventItem> {
   const eventType = normalizeEventType(input.eventType);
   const colors = normalizeEventColors(input.colors ?? (input.color ? [input.color] : ['#c8a047']));
   const circleOptions = normalizeCircleOptions(input.circleOptions ?? ['Family', 'Friends of the Family', 'Church Family']);
-  const shareSlug = normalizeShareSlug(input.shareSlug) || normalizeShareSlug(input.title) || undefined;
+  const explicitShareSlug = normalizeShareSlug(input.shareSlug);
+  const shareSlug = explicitShareSlug ? await generateUniqueShareSlug(explicitShareSlug) : await generateUniqueShareSlug(input.title);
   const defaults = getDefaultEventContent(eventType);
 
   if (!isTicketless && ticketTypes.length === 0) {
@@ -440,7 +469,8 @@ export async function updateEvent(id: string, input: UpdateEventInput): Promise<
   const nextTicketTypes = normalizeTicketTypes(input.ticketTypes ?? normalizeStoredTicketTypes(current.ticketTypes), isTicketless);
   const nextColors = normalizeEventColors(input.colors ?? (input.color ? [input.color] : current.colors ?? ['#c8a047']));
   const nextCircleOptions = normalizeCircleOptions(input.circleOptions ?? current.circleOptions ?? ['Family', 'Friends of the Family', 'Church Family']);
-  const nextShareSlug = normalizeShareSlug(input.shareSlug) ?? normalizeShareSlug(current.shareSlug) ?? normalizeShareSlug(current.title) ?? undefined;
+  const nextShareSlugCandidate = normalizeShareSlug(input.shareSlug) ?? normalizeShareSlug(current.shareSlug) ?? normalizeShareSlug(current.title) ?? undefined;
+  const nextShareSlug = nextShareSlugCandidate ? await generateUniqueShareSlug(nextShareSlugCandidate) : undefined;
   const next: EventItem = {
     ...toEventItem(current),
     title: input.title?.trim() || current.title,
@@ -615,8 +645,75 @@ function writeTicketStore(nextTickets: TicketRecord[]) {
   }
 }
 
-export function getTickets(): TicketRecord[] {
-  return readTicketStore().map((ticket) => ({ ...ticket }));
+function toTicketRecord(record: {
+  id: string;
+  eventId: string;
+  eventTitle: string;
+  ticketTypeId: string;
+  ticketTypeName: string;
+  buyerName: string;
+  buyerEmail: string;
+  buyerPhone: string | null;
+  quantity: number;
+  amount: number;
+  approvalStatus: string;
+  status: string;
+  reference: string;
+  qrCode: string | null;
+  qrPayload: string;
+  purchasedAt: Date;
+  checkedInAt: Date | null;
+  checkedInBy: string | null;
+}): TicketRecord {
+  return {
+    id: record.id,
+    eventId: record.eventId,
+    eventTitle: record.eventTitle,
+    ticketTypeId: record.ticketTypeId,
+    ticketTypeName: record.ticketTypeName,
+    buyerName: record.buyerName,
+    buyerEmail: record.buyerEmail,
+    buyerPhone: record.buyerPhone || undefined,
+    quantity: Number(record.quantity || 1),
+    amount: Number(record.amount || 0),
+    approvalStatus: (record.approvalStatus === 'APPROVED' || record.approvalStatus === 'REJECTED' ? record.approvalStatus : 'PENDING') as TicketApprovalStatus,
+    status: normalizeTicketStatus(record.status),
+    reference: record.reference,
+    qrCode: record.qrCode || '',
+    qrPayload: record.qrPayload,
+    purchasedAt: record.purchasedAt.toISOString(),
+    checkedInAt: record.checkedInAt ? record.checkedInAt.toISOString() : undefined,
+    checkedInBy: record.checkedInBy || undefined,
+  };
+}
+
+export async function getTickets(): Promise<TicketRecord[]> {
+  try {
+    const rows = await prisma.eventTicket.findMany({ orderBy: { purchasedAt: 'desc' } });
+    return rows.map((row) => toTicketRecord({
+      id: row.id,
+      eventId: row.eventId,
+      eventTitle: row.eventTitle,
+      ticketTypeId: row.ticketTypeId,
+      ticketTypeName: row.ticketTypeName,
+      buyerName: row.buyerName,
+      buyerEmail: row.buyerEmail,
+      buyerPhone: row.buyerPhone,
+      quantity: row.quantity,
+      amount: row.amount,
+      approvalStatus: row.approvalStatus,
+      status: row.status,
+      reference: row.reference,
+      qrCode: row.qrCode,
+      qrPayload: row.qrPayload,
+      purchasedAt: row.purchasedAt,
+      checkedInAt: row.checkedInAt,
+      checkedInBy: row.checkedInBy,
+    }));
+  } catch (error) {
+    console.error('Failed to load event tickets from Prisma; falling back to local store:', error);
+    return readTicketStore().map((ticket) => ({ ...ticket }));
+  }
 }
 
 export async function createTicket(input: {
@@ -658,10 +755,53 @@ export async function createTicket(input: {
       purchasedAt: new Date().toISOString(),
     };
 
-    const allTickets = readTicketStore();
-    allTickets.push(ticket);
-    writeTicketStore(allTickets);
-    return { ...ticket };
+    try {
+      const saved = await prisma.eventTicket.create({
+        data: {
+          eventId: ticket.eventId,
+          eventTitle: ticket.eventTitle,
+          ticketTypeId: ticket.ticketTypeId,
+          ticketTypeName: ticket.ticketTypeName,
+          buyerName: ticket.buyerName,
+          buyerEmail: ticket.buyerEmail,
+          buyerPhone: ticket.buyerPhone || null,
+          quantity: ticket.quantity,
+          amount: ticket.amount,
+          approvalStatus: ticket.approvalStatus,
+          status: ticket.status,
+          reference: ticket.reference,
+          qrCode: ticket.qrCode,
+          qrPayload: ticket.qrPayload,
+          purchasedAt: new Date(ticket.purchasedAt),
+        },
+      });
+      return toTicketRecord({
+        id: saved.id,
+        eventId: saved.eventId,
+        eventTitle: saved.eventTitle,
+        ticketTypeId: saved.ticketTypeId,
+        ticketTypeName: saved.ticketTypeName,
+        buyerName: saved.buyerName,
+        buyerEmail: saved.buyerEmail,
+        buyerPhone: saved.buyerPhone,
+        quantity: saved.quantity,
+        amount: saved.amount,
+        approvalStatus: saved.approvalStatus,
+        status: saved.status,
+        reference: saved.reference,
+        qrCode: saved.qrCode,
+        qrPayload: saved.qrPayload,
+        purchasedAt: saved.purchasedAt,
+        checkedInAt: saved.checkedInAt,
+        checkedInBy: saved.checkedInBy,
+      });
+    } catch (error) {
+      console.error('Failed to save ticket to Prisma; falling back to local store:', error);
+      const allTickets = readTicketStore();
+      allTickets.push(ticket);
+      writeTicketStore(allTickets);
+      return { ...ticket };
+    }
   }
 
   const ticketType = event.ticketTypes.find((item) => item.id === normalizedTicketTypeId);
@@ -692,31 +832,133 @@ export async function createTicket(input: {
     purchasedAt: new Date().toISOString(),
   };
 
-  const allTickets = readTicketStore();
-  allTickets.push(ticket);
-  writeTicketStore(allTickets);
-  return { ...ticket };
-}
-
-export function getTicketByReference(reference: string): TicketRecord | null {
-  return readTicketStore().find((ticket) => ticket.reference === reference) || null;
-}
-
-export function deleteTicket(reference: string): TicketRecord | null {
-  const allTickets = readTicketStore();
-  const index = allTickets.findIndex((ticket) => ticket.reference === reference);
-
-  if (index < 0) {
-    return null;
+  try {
+    const saved = await prisma.eventTicket.create({
+      data: {
+        eventId: ticket.eventId,
+        eventTitle: ticket.eventTitle,
+        ticketTypeId: ticket.ticketTypeId,
+        ticketTypeName: ticket.ticketTypeName,
+        buyerName: ticket.buyerName,
+        buyerEmail: ticket.buyerEmail,
+        buyerPhone: ticket.buyerPhone || null,
+        quantity: ticket.quantity,
+        amount: ticket.amount,
+        approvalStatus: ticket.approvalStatus,
+        status: ticket.status,
+        reference: ticket.reference,
+        qrCode: ticket.qrCode,
+        qrPayload: ticket.qrPayload,
+        purchasedAt: new Date(ticket.purchasedAt),
+      },
+    });
+    return toTicketRecord({
+      id: saved.id,
+      eventId: saved.eventId,
+      eventTitle: saved.eventTitle,
+      ticketTypeId: saved.ticketTypeId,
+      ticketTypeName: saved.ticketTypeName,
+      buyerName: saved.buyerName,
+      buyerEmail: saved.buyerEmail,
+      buyerPhone: saved.buyerPhone,
+      quantity: saved.quantity,
+      amount: saved.amount,
+      approvalStatus: saved.approvalStatus,
+      status: saved.status,
+      reference: saved.reference,
+      qrCode: saved.qrCode,
+      qrPayload: saved.qrPayload,
+      purchasedAt: saved.purchasedAt,
+      checkedInAt: saved.checkedInAt,
+      checkedInBy: saved.checkedInBy,
+    });
+  } catch (error) {
+    console.error('Failed to save ticket to Prisma; falling back to local store:', error);
+    const allTickets = readTicketStore();
+    allTickets.push(ticket);
+    writeTicketStore(allTickets);
+    return { ...ticket };
   }
+}
 
-  const [removedTicket] = allTickets.splice(index, 1);
-  writeTicketStore(allTickets);
-  return removedTicket;
+export async function getTicketByReference(reference: string): Promise<TicketRecord | null> {
+  try {
+    const row = await prisma.eventTicket.findUnique({ where: { reference } });
+    if (!row) {
+      return null;
+    }
+
+    return toTicketRecord({
+      id: row.id,
+      eventId: row.eventId,
+      eventTitle: row.eventTitle,
+      ticketTypeId: row.ticketTypeId,
+      ticketTypeName: row.ticketTypeName,
+      buyerName: row.buyerName,
+      buyerEmail: row.buyerEmail,
+      buyerPhone: row.buyerPhone,
+      quantity: row.quantity,
+      amount: row.amount,
+      approvalStatus: row.approvalStatus,
+      status: row.status,
+      reference: row.reference,
+      qrCode: row.qrCode,
+      qrPayload: row.qrPayload,
+      purchasedAt: row.purchasedAt,
+      checkedInAt: row.checkedInAt,
+      checkedInBy: row.checkedInBy,
+    });
+  } catch (error) {
+    console.error('Failed to read ticket from Prisma; falling back to local store:', error);
+    return readTicketStore().find((ticket) => ticket.reference === reference) || null;
+  }
+}
+
+export async function deleteTicket(reference: string): Promise<TicketRecord | null> {
+  try {
+    const existing = await prisma.eventTicket.findUnique({ where: { reference } });
+    if (!existing) {
+      return null;
+    }
+
+    const deleted = await prisma.eventTicket.delete({ where: { id: existing.id } });
+    return toTicketRecord({
+      id: deleted.id,
+      eventId: deleted.eventId,
+      eventTitle: deleted.eventTitle,
+      ticketTypeId: deleted.ticketTypeId,
+      ticketTypeName: deleted.ticketTypeName,
+      buyerName: deleted.buyerName,
+      buyerEmail: deleted.buyerEmail,
+      buyerPhone: deleted.buyerPhone,
+      quantity: deleted.quantity,
+      amount: deleted.amount,
+      approvalStatus: deleted.approvalStatus,
+      status: deleted.status,
+      reference: deleted.reference,
+      qrCode: deleted.qrCode,
+      qrPayload: deleted.qrPayload,
+      purchasedAt: deleted.purchasedAt,
+      checkedInAt: deleted.checkedInAt,
+      checkedInBy: deleted.checkedInBy,
+    });
+  } catch (error) {
+    console.error('Failed to delete ticket in Prisma; falling back to local store:', error);
+    const allTickets = readTicketStore();
+    const index = allTickets.findIndex((ticket) => ticket.reference === reference);
+
+    if (index < 0) {
+      return null;
+    }
+
+    const [removedTicket] = allTickets.splice(index, 1);
+    writeTicketStore(allTickets);
+    return removedTicket;
+  }
 }
 
 export async function approveTicket(reference: string): Promise<TicketRecord | null> {
-  const ticket = getTicketByReference(reference);
+  const ticket = await getTicketByReference(reference);
   if (!ticket) {
     return null;
   }
@@ -725,70 +967,160 @@ export async function approveTicket(reference: string): Promise<TicketRecord | n
     return { ...ticket };
   }
 
-  const qrCode = await QRCode.toDataURL(ticket.qrPayload);
-  const updated: TicketRecord = {
-    ...ticket,
-    approvalStatus: 'APPROVED',
-    qrCode,
-    status: 'valid',
-  };
+  try {
+    const qrCode = await QRCode.toDataURL(ticket.qrPayload);
+    const updated = await prisma.eventTicket.update({
+      where: { reference },
+      data: {
+        approvalStatus: 'APPROVED',
+        qrCode,
+        status: 'valid',
+      },
+    });
 
-  const allTickets = readTicketStore();
-  const index = allTickets.findIndex((item) => item.id === ticket.id);
-  if (index >= 0) {
-    allTickets[index] = updated;
-    writeTicketStore(allTickets);
-  }
+    const result = toTicketRecord({
+      id: updated.id,
+      eventId: updated.eventId,
+      eventTitle: updated.eventTitle,
+      ticketTypeId: updated.ticketTypeId,
+      ticketTypeName: updated.ticketTypeName,
+      buyerName: updated.buyerName,
+      buyerEmail: updated.buyerEmail,
+      buyerPhone: updated.buyerPhone,
+      quantity: updated.quantity,
+      amount: updated.amount,
+      approvalStatus: updated.approvalStatus,
+      status: updated.status,
+      reference: updated.reference,
+      qrCode: updated.qrCode,
+      qrPayload: updated.qrPayload,
+      purchasedAt: updated.purchasedAt,
+      checkedInAt: updated.checkedInAt,
+      checkedInBy: updated.checkedInBy,
+    });
 
-  if (updated.buyerEmail) {
-    try {
-      const qrAttachment = buildQrEmailAttachment(updated.qrCode, 'event-qr.png', 'event-qr');
+    if (result.buyerEmail) {
+      try {
+        const qrAttachment = buildQrEmailAttachment(result.qrCode, 'event-qr.png', 'event-qr');
 
-      await sendEmail({
-        to: updated.buyerEmail,
-        subject: 'Your Event Registration Has Been Approved',
-        html: getEventRegistrationApprovedEmail({
-          buyerName: updated.buyerName,
-          eventTitle: updated.eventTitle,
-          ticketTypeName: updated.ticketTypeName,
-          reference: updated.reference,
-          qrCode: updated.qrCode,
-        }),
-        attachments: qrAttachment ? [qrAttachment] : undefined,
-      });
-    } catch (error) {
-      console.error('Failed to send approved event registration email:', error);
+        await sendEmail({
+          to: result.buyerEmail,
+          subject: 'Your Event Registration Has Been Approved',
+          html: getEventRegistrationApprovedEmail({
+            buyerName: result.buyerName,
+            eventTitle: result.eventTitle,
+            ticketTypeName: result.ticketTypeName,
+            reference: result.reference,
+            qrCode: result.qrCode,
+          }),
+          attachments: qrAttachment ? [qrAttachment] : undefined,
+        });
+      } catch (error) {
+        console.error('Failed to send approved event registration email:', error);
+      }
     }
-  }
 
-  return updated;
+    return result;
+  } catch (error) {
+    console.error('Failed to approve ticket in Prisma; falling back to local store:', error);
+    const qrCode = await QRCode.toDataURL(ticket.qrPayload);
+    const updated: TicketRecord = {
+      ...ticket,
+      approvalStatus: 'APPROVED',
+      qrCode,
+      status: 'valid',
+    };
+
+    const allTickets = readTicketStore();
+    const index = allTickets.findIndex((item) => item.id === ticket.id);
+    if (index >= 0) {
+      allTickets[index] = updated;
+      writeTicketStore(allTickets);
+    }
+
+    if (updated.buyerEmail) {
+      try {
+        const qrAttachment = buildQrEmailAttachment(updated.qrCode, 'event-qr.png', 'event-qr');
+
+        await sendEmail({
+          to: updated.buyerEmail,
+          subject: 'Your Event Registration Has Been Approved',
+          html: getEventRegistrationApprovedEmail({
+            buyerName: updated.buyerName,
+            eventTitle: updated.eventTitle,
+            ticketTypeName: updated.ticketTypeName,
+            reference: updated.reference,
+            qrCode: updated.qrCode,
+          }),
+          attachments: qrAttachment ? [qrAttachment] : undefined,
+        });
+      } catch (emailError) {
+        console.error('Failed to send approved event registration email:', emailError);
+      }
+    }
+
+    return updated;
+  }
 }
 
-export function rejectTicket(reference: string): TicketRecord | null {
-  const ticket = getTicketByReference(reference);
+export async function rejectTicket(reference: string): Promise<TicketRecord | null> {
+  const ticket = await getTicketByReference(reference);
   if (!ticket) {
     return null;
   }
 
-  const updated: TicketRecord = {
-    ...ticket,
-    approvalStatus: 'REJECTED',
-    qrCode: '',
-    status: 'cancelled',
-  };
+  try {
+    const updated = await prisma.eventTicket.update({
+      where: { reference },
+      data: {
+        approvalStatus: 'REJECTED',
+        qrCode: '',
+        status: 'cancelled',
+      },
+    });
 
-  const allTickets = readTicketStore();
-  const index = allTickets.findIndex((item) => item.id === ticket.id);
-  if (index >= 0) {
-    allTickets[index] = updated;
-    writeTicketStore(allTickets);
+    return toTicketRecord({
+      id: updated.id,
+      eventId: updated.eventId,
+      eventTitle: updated.eventTitle,
+      ticketTypeId: updated.ticketTypeId,
+      ticketTypeName: updated.ticketTypeName,
+      buyerName: updated.buyerName,
+      buyerEmail: updated.buyerEmail,
+      buyerPhone: updated.buyerPhone,
+      quantity: updated.quantity,
+      amount: updated.amount,
+      approvalStatus: updated.approvalStatus,
+      status: updated.status,
+      reference: updated.reference,
+      qrCode: updated.qrCode,
+      qrPayload: updated.qrPayload,
+      purchasedAt: updated.purchasedAt,
+      checkedInAt: updated.checkedInAt,
+      checkedInBy: updated.checkedInBy,
+    });
+  } catch (error) {
+    console.error('Failed to reject ticket in Prisma; falling back to local store:', error);
+    const updated: TicketRecord = {
+      ...ticket,
+      approvalStatus: 'REJECTED',
+      qrCode: '',
+      status: 'cancelled',
+    };
+
+    const allTickets = readTicketStore();
+    const index = allTickets.findIndex((item) => item.id === ticket.id);
+    if (index >= 0) {
+      allTickets[index] = updated;
+      writeTicketStore(allTickets);
+    }
+
+    return updated;
   }
-
-  return updated;
 }
 
-export function checkInTicket(reference: string, checkedInBy: string): TicketRecord | null {
-  const ticket = getTicketByReference(reference);
+export async function checkInTicket(reference: string, checkedInBy: string): Promise<TicketRecord | null> {
+  const ticket = await getTicketByReference(reference);
   if (!ticket) {
     return null;
   }
@@ -802,19 +1134,52 @@ export function checkInTicket(reference: string, checkedInBy: string): TicketRec
     return { ...ticket, status: 'used' };
   }
 
-  const updated = {
-    ...ticket,
-    status: 'used' as TicketStatus,
-    checkedInAt: new Date().toISOString(),
-    checkedInBy,
-  };
+  try {
+    const updated = await prisma.eventTicket.update({
+      where: { reference },
+      data: {
+        status: 'used',
+        checkedInAt: new Date(),
+        checkedInBy,
+      },
+    });
 
-  const allTickets = readTicketStore();
-  const index = allTickets.findIndex((item) => item.id === ticket.id);
-  if (index >= 0) {
-    allTickets[index] = updated;
-    writeTicketStore(allTickets);
+    return toTicketRecord({
+      id: updated.id,
+      eventId: updated.eventId,
+      eventTitle: updated.eventTitle,
+      ticketTypeId: updated.ticketTypeId,
+      ticketTypeName: updated.ticketTypeName,
+      buyerName: updated.buyerName,
+      buyerEmail: updated.buyerEmail,
+      buyerPhone: updated.buyerPhone,
+      quantity: updated.quantity,
+      amount: updated.amount,
+      approvalStatus: updated.approvalStatus,
+      status: updated.status,
+      reference: updated.reference,
+      qrCode: updated.qrCode,
+      qrPayload: updated.qrPayload,
+      purchasedAt: updated.purchasedAt,
+      checkedInAt: updated.checkedInAt,
+      checkedInBy: updated.checkedInBy,
+    });
+  } catch (error) {
+    console.error('Failed to check in ticket in Prisma; falling back to local store:', error);
+    const updated = {
+      ...ticket,
+      status: 'used' as TicketStatus,
+      checkedInAt: new Date().toISOString(),
+      checkedInBy,
+    };
+
+    const allTickets = readTicketStore();
+    const index = allTickets.findIndex((item) => item.id === ticket.id);
+    if (index >= 0) {
+      allTickets[index] = updated;
+      writeTicketStore(allTickets);
+    }
+
+    return updated;
   }
-
-  return updated;
 }
