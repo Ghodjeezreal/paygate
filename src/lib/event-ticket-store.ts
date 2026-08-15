@@ -539,36 +539,80 @@ export async function getEventByShareSlug(shareSlug: string): Promise<EventItem 
 }
 
 const ticketStorePath = path.join(process.cwd(), 'data', 'event-tickets.json');
+const globalTicketStore = globalThis as typeof globalThis & {
+  __vgcTicketStore?: TicketRecord[];
+};
 
-function ensureTicketStoreFile() {
-  const directory = path.dirname(ticketStorePath);
-  fs.mkdirSync(directory, { recursive: true });
+function getMemoryTicketStore(): TicketRecord[] {
+  if (!globalTicketStore.__vgcTicketStore) {
+    globalTicketStore.__vgcTicketStore = [];
+  }
 
-  if (!fs.existsSync(ticketStorePath)) {
-    fs.writeFileSync(ticketStorePath, '[]', 'utf8');
+  return globalTicketStore.__vgcTicketStore;
+}
+
+function canUseFileStore(): boolean {
+  try {
+    const directory = path.dirname(ticketStorePath);
+    fs.mkdirSync(directory, { recursive: true });
+    if (!fs.existsSync(ticketStorePath)) {
+      fs.writeFileSync(ticketStorePath, '[]', 'utf8');
+    }
+    return true;
+  } catch (error) {
+    const code = (error as NodeJS.ErrnoException)?.code;
+    if (code === 'EROFS' || code === 'EACCES' || code === 'EPERM') {
+      return false;
+    }
+
+    throw error;
   }
 }
 
 function readTicketStore(): TicketRecord[] {
-  ensureTicketStoreFile();
+  const memoryStore = getMemoryTicketStore();
 
   try {
+    if (!canUseFileStore()) {
+      return [...memoryStore];
+    }
+
     const raw = fs.readFileSync(ticketStorePath, 'utf8').trim();
     if (!raw) {
-      return [];
+      return [...memoryStore];
     }
 
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
+    if (Array.isArray(parsed)) {
+      memoryStore.splice(0, memoryStore.length, ...parsed);
+      return parsed;
+    }
+
+    return [...memoryStore];
   } catch (error) {
     console.error('Failed to read event ticket store:', error);
-    return [];
+    return [...memoryStore];
   }
 }
 
 function writeTicketStore(nextTickets: TicketRecord[]) {
-  ensureTicketStoreFile();
-  fs.writeFileSync(ticketStorePath, JSON.stringify(nextTickets, null, 2), 'utf8');
+  const memoryStore = getMemoryTicketStore();
+  memoryStore.splice(0, memoryStore.length, ...nextTickets);
+
+  try {
+    if (!canUseFileStore()) {
+      return;
+    }
+
+    fs.writeFileSync(ticketStorePath, JSON.stringify(nextTickets, null, 2), 'utf8');
+  } catch (error) {
+    const code = (error as NodeJS.ErrnoException)?.code;
+    if (code === 'EROFS' || code === 'EACCES' || code === 'EPERM') {
+      return;
+    }
+
+    throw error;
+  }
 }
 
 export function getTickets(): TicketRecord[] {
