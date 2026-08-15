@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
 import { Header } from "@/components/header";
 import { LayoutDashboard, Search, CheckCircle, Clock, XCircle, Loader2, Eye, X } from "lucide-react";
 
@@ -36,6 +37,12 @@ interface Stats {
   verified: number;
 }
 
+interface VehicleTypeOption {
+  id: string;
+  name: string;
+  fee: number;
+}
+
 export default function AdminDashboard() {
   const [entries, setEntries] = useState<Entry[]>([]);
   const [stats, setStats] = useState<Stats>({ total: 0, paid: 0, pending: 0, verified: 0 });
@@ -44,19 +51,26 @@ export default function AdminDashboard() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedEntry, setSelectedEntry] = useState<Entry | null>(null);
   const [userFullName, setUserFullName] = useState('');
-  const [vehicleTypes, setVehicleTypes] = useState<any[]>([]);
+  const [vehicleTypes, setVehicleTypes] = useState<VehicleTypeOption[]>([]);
   const [selectedVehicleType, setSelectedVehicleType] = useState('all');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
+  const [eventRegistrations, setEventRegistrations] = useState<Array<{
+    id: string;
+    buyerName: string;
+    buyerEmail: string;
+    buyerPhone?: string;
+    eventTitle: string;
+    ticketTypeName: string;
+    reference: string;
+    approvalStatus: 'PENDING' | 'APPROVED' | 'REJECTED';
+    purchasedAt: string;
+  }>>([]);
 
   useEffect(() => {
     fetchUser();
     fetchVehicleTypes();
   }, []);
-
-  useEffect(() => {
-    fetchEntries();
-  }, [filter, selectedVehicleType, dateFrom, dateTo]);
 
   const fetchVehicleTypes = async () => {
     try {
@@ -82,7 +96,7 @@ export default function AdminDashboard() {
     }
   };
 
-  const fetchEntries = async () => {
+  const fetchEntries = useCallback(async () => {
     setLoading(true);
     try {
       const params = new URLSearchParams();
@@ -104,11 +118,44 @@ export default function AdminDashboard() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [filter, searchTerm, selectedVehicleType, dateFrom, dateTo]);
+
+  const fetchEventRegistrations = useCallback(async () => {
+    try {
+      const response = await fetch('/api/admin/event-tickets');
+      const data = await response.json();
+      if (response.ok) {
+        setEventRegistrations(data.tickets || []);
+      }
+    } catch (error) {
+      console.error('Failed to fetch event registrations:', error);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchEntries();
+    fetchEventRegistrations();
+  }, [fetchEntries, fetchEventRegistrations]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     fetchEntries();
+  };
+
+  const handleEventRegistrationAction = async (reference: string, action: 'approve' | 'reject') => {
+    try {
+      const response = await fetch(`/api/events/tickets/${encodeURIComponent(reference)}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action }),
+      });
+
+      if (response.ok) {
+        await fetchEventRegistrations();
+      }
+    } catch (error) {
+      console.error(`Failed to ${action} event registration:`, error);
+    }
   };
 
   const exportToCSV = () => {
@@ -218,6 +265,48 @@ export default function AdminDashboard() {
             >
               📊 Reports
             </a>
+            <Link
+              href="/admin/events"
+              style={{
+                padding: '10px 16px',
+                borderRadius: '8px',
+                backgroundColor: 'rgba(255,255,255,0.2)',
+                color: 'white',
+                textDecoration: 'none',
+                fontWeight: '600',
+                fontSize: '13px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px',
+                border: '1px solid rgba(255,255,255,0.3)',
+                alignSelf: 'flex-start',
+                marginLeft: '8px'
+              }}
+            >
+              🎟️ Events
+            </Link>
+            <Link
+              href="/admin/approvals"
+              style={{
+                padding: '10px 16px',
+                borderRadius: '8px',
+                backgroundColor: 'rgba(255,255,255,0.2)',
+                color: 'white',
+                textDecoration: 'none',
+                fontWeight: '600',
+                fontSize: '13px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px',
+                border: '1px solid rgba(255,255,255,0.3)',
+                alignSelf: 'flex-start',
+                marginLeft: '8px'
+              }}
+            >
+              ✅ Approvals
+            </Link>
           </div>
         </div>
 
@@ -264,6 +353,122 @@ export default function AdminDashboard() {
             <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '6px' }}>Verified</div>
             <div style={{ fontSize: '28px', fontWeight: 'bold', color: '#3b82f6' }}>{stats.verified}</div>
           </div>
+        </div>
+
+        {/* Event Approvals */}
+        <div style={{
+          backgroundColor: 'white',
+          borderRadius: '16px',
+          padding: '20px',
+          marginBottom: '16px',
+          boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', marginBottom: '16px' }}>
+            <div>
+              <div style={{ fontSize: '12px', fontWeight: '700', letterSpacing: '0.08em', color: '#6b7280', textTransform: 'uppercase', marginBottom: '4px' }}>
+                Event approvals
+              </div>
+              <h2 style={{ fontSize: '22px', fontWeight: 'bold', color: '#111827', margin: 0 }}>Pending registrations</h2>
+            </div>
+            <div style={{
+              backgroundColor: '#f3f4f6',
+              borderRadius: '999px',
+              padding: '8px 12px',
+              fontSize: '12px',
+              fontWeight: '700',
+              color: '#374151'
+            }}>
+              {eventRegistrations.length} awaiting review
+            </div>
+          </div>
+
+          {eventRegistrations.length === 0 ? (
+            <div style={{ padding: '20px', backgroundColor: '#f9fafb', borderRadius: '12px', color: '#6b7280', textAlign: 'center' }}>
+              No event registrations are waiting for approval.
+            </div>
+          ) : (
+            <div style={{ display: 'grid', gap: '12px' }}>
+              {eventRegistrations.map((registration) => (
+                <div key={registration.id} style={{
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '12px',
+                  padding: '16px',
+                  backgroundColor: '#fafafa',
+                  display: 'grid',
+                  gap: '12px'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+                    <div>
+                      <div style={{ fontSize: '12px', fontWeight: '700', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                        {registration.eventTitle}
+                      </div>
+                      <div style={{ fontSize: '18px', fontWeight: '700', color: '#111827', marginTop: '4px' }}>
+                        {registration.buyerName}
+                      </div>
+                    </div>
+                    <span style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      borderRadius: '999px',
+                      padding: '6px 10px',
+                      fontSize: '12px',
+                      fontWeight: '700',
+                      backgroundColor: registration.approvalStatus === 'APPROVED' ? '#d1fae5' : registration.approvalStatus === 'REJECTED' ? '#fee2e2' : '#fef3c7',
+                      color: registration.approvalStatus === 'APPROVED' ? '#047857' : registration.approvalStatus === 'REJECTED' ? '#b91c1c' : '#b45309'
+                    }}>
+                      {registration.approvalStatus}
+                    </span>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px', color: '#374151', fontSize: '14px' }}>
+                    <div>
+                      <div><strong>Email:</strong> {registration.buyerEmail}</div>
+                      {registration.buyerPhone ? <div style={{ marginTop: '4px' }}><strong>Phone:</strong> {registration.buyerPhone}</div> : null}
+                    </div>
+                    <div><strong>Ticket:</strong> {registration.ticketTypeName}</div>
+                    <div><strong>Reference:</strong> <span style={{ fontFamily: 'monospace' }}>{registration.reference}</span></div>
+                    <div><strong>Purchased:</strong> {new Date(registration.purchasedAt).toLocaleString()}</div>
+                  </div>
+
+                  {registration.approvalStatus !== 'APPROVED' && (
+                    <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                      <button
+                        type="button"
+                        onClick={() => handleEventRegistrationAction(registration.reference, 'approve')}
+                        style={{
+                          backgroundColor: '#059669',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '10px',
+                          padding: '10px 14px',
+                          fontWeight: '700',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        Approve
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleEventRegistrationAction(registration.reference, 'reject')}
+                        style={{
+                          backgroundColor: '#dc2626',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '10px',
+                          padding: '10px 14px',
+                          fontWeight: '700',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        Reject
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Filters & Search */}
@@ -857,7 +1062,7 @@ export default function AdminDashboard() {
                                 NOTES:
                               </div>
                               <div style={{ fontSize: '12px', color: '#111827', fontStyle: 'italic' }}>
-                                "{log.notes}"
+                                &quot;{log.notes}&quot;
                               </div>
                             </div>
                           )}

@@ -1,0 +1,134 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>
+endobj
+4 0 obj
+<< /Length 2280 >>
+stream
+BT
+/F1 11 Tf
+72 760 Td
+(Event Ticketing Platform MVP Spec) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(Product goal) Tj
+0 -14 Td
+(Build a simple event ticketing platform that allows users to discover events, purchase free or paid tickets, receive a digital ticket, and use a QR code for entry validation.) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(MVP scope) Tj
+0 -14 Td
+(Included:) Tj
+0 -14 Td
+(- Event listing) Tj
+0 -14 Td
+(- Event details) Tj
+0 -14 Td
+(- Ticket selection) Tj
+0 -14 Td
+(- Free and paid ticket flow) Tj
+0 -14 Td
+(- Digital ticket with QR code) Tj
+0 -14 Td
+(- QR-based check-in) Tj
+0 -14 Td
+(- Basic ticket history and attendee status) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(Excluded for v1:) Tj
+0 -14 Td
+(- Refunds and exchanges) Tj
+0 -14 Td
+(- Resale marketplace) Tj
+0 -14 Td
+(- Promo codes and discount engine) Tj
+0 -14 Td
+(- Advanced analytics and reporting) Tj
+0 -14 Td
+(- Multi-venue or multi-organizer complexity) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(Core user roles) Tj
+0 -14 Td
+(- Attendee: browse, buy, view tickets, show QR at entry) Tj
+0 -14 Td
+(- Organizer: create events, define ticket types, manage availability) Tj
+0 -14 Td
+(- Staff: scan QR codes and validate entry) Tj
+0 -14 Td
+(- Admin: manage events, users, and reports) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(Core screens) Tj
+0 -14 Td
+(- Home / events list) Tj
+0 -14 Td
+(- Event details) Tj
+0 -14 Td
+(- Ticket selection) Tj
+0 -14 Td
+(- Purchase confirmation / success) Tj
+0 -14 Td
+(- My tickets) Tj
+0 -14 Td
+(- Check-in scanner) Tj
+0 -14 Td
+(- Organizer dashboard) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(Product rules) Tj
+0 -14 Td
+(- Each ticket must be tied to one event and one attendee) Tj
+0 -14 Td
+(- QR should be generated after successful purchase) Tj
+0 -14 Td
+(- A ticket can be valid, used, or invalid) Tj
+0 -14 Td
+(- Free tickets should work the same as paid tickets in the flow) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(Success criteria) Tj
+0 -14 Td
+(- A user can buy a ticket in under 3 steps) Tj
+0 -14 Td
+(- A staff member can verify a ticket with a QR scan) Tj
+0 -14 Td
+(- The platform supports both free and paid events without changing the core flow) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(Recommended next step) Tj
+0 -14 Td
+(Before implementation, approve the MVP scope and confirm the first event type to target, such as concerts, conferences, or community events.) Tj
+ET
+endstream
+endobj
+5 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+xref
+0 6
+0000000000 65535 f 
+0000000000 00000 n 
+0000000049 00000 n 
+0000000106 00000 n 
+0000000232 00000 n 
+0000002564 00000 n 
+trailer
+<< /Size 6 /Root 1 0 R >>
+startxref
+2643
+%%EOF

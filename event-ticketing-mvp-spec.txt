@@ -1,0 +1,50 @@
+Event Ticketing Platform MVP Spec
+
+Product goal
+Build a simple event ticketing platform that allows users to discover events, purchase free or paid tickets, receive a digital ticket, and use a QR code for entry validation.
+
+MVP scope
+Included:
+- Event listing
+- Event details
+- Ticket selection
+- Free and paid ticket flow
+- Digital ticket with QR code
+- QR-based check-in
+- Basic ticket history and attendee status
+
+Excluded for v1:
+- Refunds and exchanges
+- Resale marketplace
+- Promo codes and discount engine
+- Advanced analytics and reporting
+- Multi-venue or multi-organizer complexity
+
+Core user roles
+- Attendee: browse, buy, view tickets, show QR at entry
+- Organizer: create events, define ticket types, manage availability
+- Staff: scan QR codes and validate entry
+- Admin: manage events, users, and reports
+
+Core screens
+- Home / events list
+- Event details
+- Ticket selection
+- Purchase confirmation / success
+- My tickets
+- Check-in scanner
+- Organizer dashboard
+
+Product rules
+- Each ticket must be tied to one event and one attendee
+- QR should be generated after successful purchase
+- A ticket can be valid, used, or invalid
+- Free tickets should work the same as paid tickets in the flow
+
+Success criteria
+- A user can buy a ticket in under 3 steps
+- A staff member can verify a ticket with a QR scan
+- The platform supports both free and paid events without changing the core flow
+
+Recommended next step
+Before implementation, approve the MVP scope and confirm the first event type to target, such as concerts, conferences, or community events.

@@ -12,9 +12,13 @@ interface HeaderProps {
   showLogout?: boolean;
   userFullName?: string;
   centerLogo?: boolean;
+  hideGlobalHeader?: boolean;
 }
 
-export function Header({ showBackButton = false, showLogout = false, userFullName, centerLogo = false }: HeaderProps) {
+export function Header({ showBackButton = false, showLogout = false, userFullName, centerLogo = false, hideGlobalHeader = false }: HeaderProps) {
+  if (hideGlobalHeader) {
+    return null;
+  }
   const router = useRouter();
   const { showToast } = useToast();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);

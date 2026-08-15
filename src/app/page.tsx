@@ -17,6 +17,15 @@ export default function Home() {
       available: true,
     },
     {
+      id: "event-tickets",
+      title: "Event Tickets",
+      description: "Browse events, purchase tickets, and use QR check-in",
+      icon: FileText,
+      href: "/events",
+      color: "#2563eb",
+      available: true,
+    },
+    {
       id: "vandalism",
       title: "Vandalism Bill",
       description: "Property damage and vandalism fines",

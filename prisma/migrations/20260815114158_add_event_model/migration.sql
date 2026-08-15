@@ -1,0 +1,30 @@
+-- CreateTable
+CREATE TABLE "Event" (
+    "id" TEXT NOT NULL,
+    "title" TEXT NOT NULL,
+    "description" TEXT NOT NULL,
+    "venue" TEXT NOT NULL,
+    "date" TIMESTAMP(3) NOT NULL,
+    "image" TEXT,
+    "status" TEXT NOT NULL DEFAULT 'published',
+    "eventType" TEXT NOT NULL DEFAULT 'general',
+    "heroHeading" TEXT,
+    "heroSubheading" TEXT,
+    "heroAge" TEXT,
+    "heroHeadingFont" TEXT DEFAULT 'Georgia',
+    "heroSubheadingFont" TEXT DEFAULT 'Georgia',
+    "heroAgeFont" TEXT DEFAULT 'Georgia',
+    "heroText" TEXT,
+    "invitationMessage" TEXT,
+    "dressCode" TEXT,
+    "admits" TEXT,
+    "venueNote" TEXT,
+    "familyNote" TEXT,
+    "ctaText" TEXT,
+    "isTicketless" BOOLEAN NOT NULL DEFAULT false,
+    "ticketTypes" JSONB NOT NULL DEFAULT '[]',
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "Event_pkey" PRIMARY KEY ("id")
+);

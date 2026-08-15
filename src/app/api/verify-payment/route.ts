@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { sendEmail, getPaymentConfirmationEmail } from '@/lib/email';
+import { sendEmail, getPaymentConfirmationEmail, buildQrEmailAttachment } from '@/lib/email';
 
 export async function POST(req: NextRequest) {
   try {
@@ -43,6 +43,8 @@ export async function POST(req: NextRequest) {
     // Send confirmation email to resident
     if (goodsEntry.residentEmail) {
       try {
+        const qrAttachment = buildQrEmailAttachment(goodsEntry.qrCode || '', 'entry-pass-qr.png', 'entry-pass-qr');
+
         await sendEmail({
           to: goodsEntry.residentEmail,
           subject: 'VGC Estate - Payment Confirmation',
@@ -56,6 +58,7 @@ export async function POST(req: NextRequest) {
             entryDate: goodsEntry.entryDate.toISOString(),
             qrCode: goodsEntry.qrCode || '',
           }),
+          attachments: qrAttachment ? [qrAttachment] : undefined,
         });
       } catch (emailError) {
         console.error('Failed to send confirmation email:', emailError);

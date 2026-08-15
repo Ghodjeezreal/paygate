@@ -15,15 +15,48 @@ interface EmailOptions {
   to: string;
   subject: string;
   html: string;
+  attachments?: Array<{
+    filename: string;
+    content: string | Buffer;
+    cid?: string;
+    contentType?: string;
+  }>;
 }
 
-export async function sendEmail({ to, subject, html }: EmailOptions) {
+export function buildQrEmailAttachment(qrCode: string, filename = 'qr-code.png', cid = 'event-qr') {
+  if (!qrCode || !qrCode.startsWith('data:')) {
+    return undefined;
+  }
+
+  const match = qrCode.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,(.*)$/);
+  if (!match) {
+    return undefined;
+  }
+
+  const [, contentType, base64Payload] = match;
+
+  return {
+    filename,
+    content: Buffer.from(base64Payload, 'base64'),
+    cid,
+    contentType,
+  };
+}
+
+export async function sendEmail({ to, subject, html, attachments }: EmailOptions) {
+  if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASSWORD) {
+    const error = new Error('SMTP configuration is missing. Set SMTP_HOST, SMTP_USER, and SMTP_PASSWORD in your environment.');
+    console.error('Email not sent:', error.message);
+    return { success: false, error };
+  }
+
   try {
     const info = await transporter.sendMail({
-      from: `"VGC Estate Payments" <${process.env.SMTP_USER}>`,
+      from: `"Freddies Event Management" <${process.env.SMTP_USER}>`,
       to,
       subject,
       html,
+      attachments,
     });
 
     console.log('Email sent: %s', info.messageId);
@@ -119,7 +152,7 @@ export function getPaymentConfirmationEmail(data: {
           
           <div class="qr-code">
             <h3 style="margin-top: 0;">Entry Pass QR Code</h3>
-            <img src="${data.qrCode}" alt="QR Code" style="max-width: 200px;" />
+            <img src="cid:entry-pass-qr" alt="QR Code" style="max-width: 200px;" />
             <p style="color: #6b7280; font-size: 14px; margin: 10px 0 0 0;">
               Show this QR code at the security gate for verification
             </p>
@@ -145,6 +178,71 @@ export function getPaymentConfirmationEmail(data: {
 }
 
 // Email template for pass package purchase confirmation
+export function getEventRegistrationApprovedEmail(data: {
+  buyerName: string;
+  eventTitle: string;
+  ticketTypeName: string;
+  reference: string;
+  qrCode: string;
+}) {
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+        .content { background: #f9fafb; padding: 30px; border-radius: 0 0 10px 10px; }
+        .detail-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #e5e7eb; }
+        .label { font-weight: 600; color: #6b7280; }
+        .value { color: #111827; }
+        .qr-code { text-align: center; margin: 20px 0; padding: 20px; background: white; border-radius: 8px; }
+        .footer { text-align: center; margin-top: 30px; padding: 20px; color: #6b7280; font-size: 14px; }
+        .success-badge { background: #dcfce7; color: #166534; padding: 8px 16px; border-radius: 20px; display: inline-block; font-weight: 600; margin: 10px 0; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1 style="margin: 0;">Registration Approved</h1>
+          <p style="margin: 10px 0 0 0; opacity: 0.9;">Your event ticket is ready</p>
+        </div>
+        <div class="content">
+          <div style="text-align: center; margin-bottom: 20px;">
+            <span class="success-badge">✓ APPROVED</span>
+          </div>
+          <h2 style="color: #111827; margin-bottom: 20px;">Hello ${data.buyerName}</h2>
+          <div class="detail-row">
+            <span class="label">Event: </span>
+            <span class="value">${data.eventTitle}</span>
+          </div>
+          <div class="detail-row">
+            <span class="label">Ticket Type: </span>
+            <span class="value">${data.ticketTypeName}</span>
+          </div>
+          <div class="detail-row" style="border-bottom: none;">
+            <span class="label">Reference: </span>
+            <span class="value" style="font-weight: 600; color: #7c3aed;">${data.reference}</span>
+          </div>
+          <div class="qr-code">
+            <h3 style="margin-top: 0;">Your QR code</h3>
+            <img src="cid:event-qr" alt="Event QR Code" style="max-width: 200px;" />
+            <p style="color: #6b7280; font-size: 14px; margin: 10px 0 0 0;">
+              Please present this QR code at the event entrance when you arrive.
+            </p>
+          </div>
+        </div>
+        <div class="footer">
+          <p>This is an automated email from Freddies Event Management.</p>
+          <p>Thank you for registering.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+}
+
 export function getPassPurchaseEmail(data: {
   residentName: string;
   paymentReference: string;

@@ -1,16 +1,15 @@
 import { PrismaClient } from '@prisma/client';
+import { PrismaPg } from '@prisma/adapter-pg';
 
 const prismaClientSingleton = () => {
-  const accelerateUrl = process.env.DATABASE_URL;
-  
-  if (!accelerateUrl) {
-    throw new Error('DATABASE_URL environment variable is not set');
+  const datasourceUrl = process.env.DIRECT_URL || process.env.DATABASE_URL;
+
+  if (!datasourceUrl) {
+    throw new Error('DATABASE_URL or DIRECT_URL environment variable is not set');
   }
-  
-  console.log('Initializing Prisma Client with Accelerate URL');
-  
+
   return new PrismaClient({
-    accelerateUrl,
+    adapter: new PrismaPg({ connectionString: datasourceUrl }),
   });
 };
 

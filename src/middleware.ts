@@ -12,17 +12,16 @@ export async function middleware(request: NextRequest) {
   // Protected routes
   const isAdminRoute = pathname.startsWith('/admin');
   const isVerifyRoute = pathname.startsWith('/verify');
+  const isEventCheckInRoute = pathname.startsWith('/events/check-in');
   const isLoginRoute = pathname.startsWith('/login');
 
-  // Get auth token
   const token = request.cookies.get('auth-token')?.value;
 
-  // If accessing login page and already authenticated, redirect to appropriate dashboard
   if (isLoginRoute && token) {
     try {
       const verified = await jwtVerify(token, SECRET_KEY);
       const role = verified.payload.role as string;
-      
+
       if (role === 'ADMIN') {
         return NextResponse.redirect(new URL('/admin', request.url));
       } else if (role === 'SECURITY') {
@@ -33,8 +32,7 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // Check if route requires authentication
-  if (isAdminRoute || isVerifyRoute) {
+  if (isAdminRoute || isVerifyRoute || isEventCheckInRoute) {
     if (!token) {
       return NextResponse.redirect(new URL('/login', request.url));
     }
@@ -43,16 +41,14 @@ export async function middleware(request: NextRequest) {
       const verified = await jwtVerify(token, SECRET_KEY);
       const role = verified.payload.role as string;
 
-      // Check role-based access
       if (isAdminRoute && role !== 'ADMIN') {
         return NextResponse.redirect(new URL('/login', request.url));
       }
 
-      if (isVerifyRoute && role !== 'SECURITY' && role !== 'ADMIN') {
+      if ((isVerifyRoute || isEventCheckInRoute) && role !== 'SECURITY' && role !== 'ADMIN') {
         return NextResponse.redirect(new URL('/login', request.url));
       }
     } catch (error) {
-      // Invalid token
       return NextResponse.redirect(new URL('/login', request.url));
     }
   }
@@ -62,8 +58,9 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    '/admin/:path*', 
-    '/verify/:path*', 
+    '/admin/:path*',
+    '/verify/:path*',
+    '/events/check-in',
     '/login'
   ],
 };

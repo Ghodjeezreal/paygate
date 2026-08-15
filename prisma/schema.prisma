@@ -22,6 +22,37 @@ model User {
   updatedAt     DateTime @updatedAt
 }
 
+model Event {
+  id                  String   @id @default(cuid())
+  title               String
+  description         String
+  venue               String
+  date                DateTime
+  image               String?
+  colors              String[] @default([])
+  circleOptions       String[] @default(["Family", "Friends of the Family", "Church Family"])
+  shareSlug           String?  @unique
+  status              String   @default("published")
+  eventType           String   @default("general")
+  heroHeading         String?
+  heroSubheading      String?
+  heroAge             String?
+  heroHeadingFont     String?  @default("Georgia")
+  heroSubheadingFont  String?  @default("Georgia")
+  heroAgeFont         String?  @default("Georgia")
+  heroText            String?
+  invitationMessage   String?
+  dressCode           String?
+  admits              String?
+  venueNote           String?
+  familyNote          String?
+  ctaText             String?
+  isTicketless        Boolean  @default(false)
+  ticketTypes         Json     @default("[]")
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+}
+
 model VehicleType {
   id           Int          @id @default(autoincrement())
   name         String       @unique
