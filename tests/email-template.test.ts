@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { getEventRegistrationApprovedEmail } from '../src/lib/email';
 
 describe('event approval email template', () => {
-  it('uses a cid-based QR image instead of a raw data URI so it renders in email clients', () => {
+  it('includes both the cid QR and a data-URI fallback so email clients still show a QR code', () => {
     const html = getEventRegistrationApprovedEmail({
       buyerName: 'Ada',
       eventTitle: 'Launch Night',
@@ -13,6 +13,6 @@ describe('event approval email template', () => {
     });
 
     assert.match(html, /cid:event-qr/i);
-    assert.doesNotMatch(html, /src="data:image\/png;base64/i);
+    assert.match(html, /src="data:image\/png;base64,abc123"/i);
   });
 });
