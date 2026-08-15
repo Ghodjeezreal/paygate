@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { normalizeTicketStatus, canCheckIn, createTicketReference } from '../src/lib/event-tickets';
-import { createEvent, createTicket, getTicketByReference } from '../src/lib/event-ticket-store';
+import { createEvent, createTicket, getTicketByReference, updateEvent } from '../src/lib/event-ticket-store';
 
 describe('event ticket helpers', () => {
   it('normalizes unknown status to valid', () => {
@@ -176,5 +176,33 @@ describe('event ticket helpers', () => {
 
     assert.equal(ticket.eventId, event.id);
     assert.equal(ticket.approvalStatus, 'PENDING');
+  });
+
+  it('keeps the current share slug when an event is edited without changing it', async () => {
+    const event = await createEvent({
+      title: 'Stable Link Event',
+      description: 'The URL should remain stable while content is updated.',
+      venue: 'North Hall',
+      date: '2027-05-12T18:00:00.000Z',
+      status: 'published',
+      shareSlug: 'stable-link-event',
+      ticketTypes: [{ id: 'general', name: 'General', price: 0, quantity: 40 }],
+    });
+
+    const updated = await updateEvent(event.id, {
+      title: 'Stable Link Event Updated',
+      description: 'The URL should remain stable while content is updated.',
+      venue: 'North Hall',
+      date: '2027-05-12T18:00:00.000Z',
+      image: event.image,
+      colors: event.colors,
+      circleOptions: event.circleOptions,
+      shareSlug: event.shareSlug,
+      status: event.status,
+      ticketTypes: event.ticketTypes,
+    });
+
+    assert.equal(updated.shareSlug, 'stable-link-event');
+    assert.equal(updated.title, 'Stable Link Event Updated');
   });
 });
