@@ -131,7 +131,16 @@ export default function EventDetailPage() {
     const response = await fetch('/api/events/tickets', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ eventId: params.id, ticketTypeId: isTicketlessEvent ? 'ticketless' : selectedType, buyerName: name, buyerEmail: email, buyerPhone: phone, quantity }),
+      body: JSON.stringify({
+        eventId: params.id,
+        ticketTypeId: isTicketlessEvent ? 'ticketless' : selectedType,
+        buyerName: name,
+        buyerEmail: email,
+        buyerPhone: phone,
+        circleName: circle,
+        guestMessage: note,
+        quantity,
+      }),
     });
 
     const data = await response.json();

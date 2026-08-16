@@ -155,6 +155,36 @@ describe('event ticket helpers', () => {
     assert.equal(persisted?.buyerPhone, '+2348000000001');
   });
 
+  it('stores the selected circle and RSVP message with the invitee details', async () => {
+    const event = await createEvent({
+      title: 'RSVP Detail Event',
+      description: 'The invitee details should include the selected circle and written message.',
+      venue: 'Maple Hall',
+      date: '2027-03-25T18:00:00.000Z',
+      status: 'published',
+      circleOptions: ['Family', 'Friends of the Family', 'Church Family'],
+      ticketTypes: [{ id: 'general', name: 'General', price: 0, quantity: 20 }],
+    });
+
+    const ticket = await createTicket({
+      eventId: event.id,
+      ticketTypeId: 'general',
+      buyerName: 'Mary Jackson',
+      buyerEmail: 'mary@example.com',
+      buyerPhone: '+2348000000002',
+      circleName: 'Friends of the Family',
+      guestMessage: 'We are so excited to celebrate with you.',
+      quantity: 1,
+    });
+
+    assert.equal(ticket.circleName, 'Friends of the Family');
+    assert.equal(ticket.guestMessage, 'We are so excited to celebrate with you.');
+
+    const persisted = await getTicketByReference(ticket.reference);
+    assert.equal(persisted?.circleName, 'Friends of the Family');
+    assert.equal(persisted?.guestMessage, 'We are so excited to celebrate with you.');
+  });
+
   it('allows ticket registration using a custom share slug instead of the event id', async () => {
     const event = await createEvent({
       title: 'Custom Link Event',

@@ -121,6 +121,8 @@ model EventTicket {
   buyerName      String
   buyerEmail     String
   buyerPhone     String?
+  circleName     String?
+  guestMessage   String?
   quantity       Int       @default(1)
   amount         Float     @default(0)
   approvalStatus String    @default("PENDING")

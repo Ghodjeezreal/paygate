@@ -60,6 +60,8 @@ export default function AdminDashboard() {
     buyerName: string;
     buyerEmail: string;
     buyerPhone?: string;
+    circleName?: string;
+    guestMessage?: string;
     eventTitle: string;
     ticketTypeName: string;
     reference: string;
@@ -425,6 +427,8 @@ export default function AdminDashboard() {
                     <div>
                       <div><strong>Email:</strong> {registration.buyerEmail}</div>
                       {registration.buyerPhone ? <div style={{ marginTop: '4px' }}><strong>Phone:</strong> {registration.buyerPhone}</div> : null}
+                      {registration.circleName ? <div style={{ marginTop: '4px' }}><strong>Circle:</strong> {registration.circleName}</div> : null}
+                      {registration.guestMessage ? <div style={{ marginTop: '4px' }}><strong>Message:</strong> {registration.guestMessage}</div> : null}
                     </div>
                     <div><strong>Ticket:</strong> {registration.ticketTypeName}</div>
                     <div><strong>Reference:</strong> <span style={{ fontFamily: 'monospace' }}>{registration.reference}</span></div>

@@ -114,6 +114,8 @@ export interface TicketRecord {
   buyerName: string;
   buyerEmail: string;
   buyerPhone?: string;
+  circleName?: string;
+  guestMessage?: string;
   quantity: number;
   amount: number;
   approvalStatus: TicketApprovalStatus;
@@ -666,6 +668,8 @@ function toTicketRecord(record: {
   buyerName: string;
   buyerEmail: string;
   buyerPhone: string | null;
+  circleName: string | null;
+  guestMessage: string | null;
   quantity: number;
   amount: number;
   approvalStatus: string;
@@ -686,6 +690,8 @@ function toTicketRecord(record: {
     buyerName: record.buyerName,
     buyerEmail: record.buyerEmail,
     buyerPhone: record.buyerPhone || undefined,
+    circleName: record.circleName || undefined,
+    guestMessage: record.guestMessage || undefined,
     quantity: Number(record.quantity || 1),
     amount: Number(record.amount || 0),
     approvalStatus: (record.approvalStatus === 'APPROVED' || record.approvalStatus === 'REJECTED' ? record.approvalStatus : 'PENDING') as TicketApprovalStatus,
@@ -711,6 +717,8 @@ export async function getTickets(): Promise<TicketRecord[]> {
       buyerName: row.buyerName,
       buyerEmail: row.buyerEmail,
       buyerPhone: row.buyerPhone,
+      circleName: row.circleName,
+      guestMessage: row.guestMessage,
       quantity: row.quantity,
       amount: row.amount,
       approvalStatus: row.approvalStatus,
@@ -734,6 +742,8 @@ export async function createTicket(input: {
   buyerName: string;
   buyerEmail: string;
   buyerPhone?: string;
+  circleName?: string;
+  guestMessage?: string;
   quantity: number;
 }): Promise<TicketRecord> {
   const event = (await getEventById(input.eventId)) || (await getEventByShareSlug(input.eventId));
@@ -757,6 +767,8 @@ export async function createTicket(input: {
       buyerName: input.buyerName,
       buyerEmail: input.buyerEmail,
       buyerPhone: input.buyerPhone || '',
+      circleName: input.circleName || '',
+      guestMessage: input.guestMessage || '',
       quantity: input.quantity,
       amount: 0,
       approvalStatus: 'PENDING',
@@ -777,6 +789,8 @@ export async function createTicket(input: {
           buyerName: ticket.buyerName,
           buyerEmail: ticket.buyerEmail,
           buyerPhone: ticket.buyerPhone || null,
+          circleName: ticket.circleName || null,
+          guestMessage: ticket.guestMessage || null,
           quantity: ticket.quantity,
           amount: ticket.amount,
           approvalStatus: ticket.approvalStatus,
@@ -796,6 +810,8 @@ export async function createTicket(input: {
         buyerName: saved.buyerName,
         buyerEmail: saved.buyerEmail,
         buyerPhone: saved.buyerPhone,
+        circleName: saved.circleName,
+        guestMessage: saved.guestMessage,
         quantity: saved.quantity,
         amount: saved.amount,
         approvalStatus: saved.approvalStatus,
@@ -834,6 +850,8 @@ export async function createTicket(input: {
     buyerName: input.buyerName,
     buyerEmail: input.buyerEmail,
     buyerPhone: input.buyerPhone || '',
+    circleName: input.circleName || '',
+    guestMessage: input.guestMessage || '',
     quantity: input.quantity,
     amount,
     approvalStatus: 'PENDING',
@@ -854,6 +872,8 @@ export async function createTicket(input: {
         buyerName: ticket.buyerName,
         buyerEmail: ticket.buyerEmail,
         buyerPhone: ticket.buyerPhone || null,
+        circleName: ticket.circleName || null,
+        guestMessage: ticket.guestMessage || null,
         quantity: ticket.quantity,
         amount: ticket.amount,
         approvalStatus: ticket.approvalStatus,
@@ -873,6 +893,8 @@ export async function createTicket(input: {
       buyerName: saved.buyerName,
       buyerEmail: saved.buyerEmail,
       buyerPhone: saved.buyerPhone,
+      circleName: saved.circleName,
+      guestMessage: saved.guestMessage,
       quantity: saved.quantity,
       amount: saved.amount,
       approvalStatus: saved.approvalStatus,
@@ -909,6 +931,8 @@ export async function getTicketByReference(reference: string): Promise<TicketRec
       buyerName: row.buyerName,
       buyerEmail: row.buyerEmail,
       buyerPhone: row.buyerPhone,
+      circleName: row.circleName,
+      guestMessage: row.guestMessage,
       quantity: row.quantity,
       amount: row.amount,
       approvalStatus: row.approvalStatus,
@@ -943,6 +967,8 @@ export async function deleteTicket(reference: string): Promise<TicketRecord | nu
       buyerName: deleted.buyerName,
       buyerEmail: deleted.buyerEmail,
       buyerPhone: deleted.buyerPhone,
+      circleName: deleted.circleName,
+      guestMessage: deleted.guestMessage,
       quantity: deleted.quantity,
       amount: deleted.amount,
       approvalStatus: deleted.approvalStatus,
@@ -999,6 +1025,8 @@ export async function approveTicket(reference: string): Promise<TicketRecord | n
       buyerName: updated.buyerName,
       buyerEmail: updated.buyerEmail,
       buyerPhone: updated.buyerPhone,
+      circleName: updated.circleName,
+      guestMessage: updated.guestMessage,
       quantity: updated.quantity,
       amount: updated.amount,
       approvalStatus: updated.approvalStatus,
@@ -1100,6 +1128,8 @@ export async function rejectTicket(reference: string): Promise<TicketRecord | nu
       buyerName: updated.buyerName,
       buyerEmail: updated.buyerEmail,
       buyerPhone: updated.buyerPhone,
+      circleName: updated.circleName,
+      guestMessage: updated.guestMessage,
       quantity: updated.quantity,
       amount: updated.amount,
       approvalStatus: updated.approvalStatus,
@@ -1165,6 +1195,8 @@ export async function checkInTicket(reference: string, checkedInBy: string): Pro
       buyerName: updated.buyerName,
       buyerEmail: updated.buyerEmail,
       buyerPhone: updated.buyerPhone,
+      circleName: updated.circleName,
+      guestMessage: updated.guestMessage,
       quantity: updated.quantity,
       amount: updated.amount,
       approvalStatus: updated.approvalStatus,

@@ -10,6 +10,8 @@ export async function POST(req: NextRequest) {
       buyerName: body.buyerName,
       buyerEmail: body.buyerEmail,
       buyerPhone: body.buyerPhone,
+      circleName: body.circleName || body.circle || undefined,
+      guestMessage: body.guestMessage || body.note || undefined,
       quantity: Number(body.quantity || 1),
     });
 

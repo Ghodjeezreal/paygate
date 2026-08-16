@@ -10,6 +10,8 @@ interface EventApprovalRow {
   buyerName: string;
   buyerEmail: string;
   buyerPhone?: string;
+  circleName?: string;
+  guestMessage?: string;
   eventTitle: string;
   ticketTypeName: string;
   reference: string;
@@ -124,6 +126,8 @@ export default function AdminApprovalsPage() {
                         <div style={{ fontWeight: '700', color: '#111827' }}>{row.buyerName}</div>
                         <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '4px' }}>{row.buyerEmail}</div>
                         {row.buyerPhone ? <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '4px' }}>{row.buyerPhone}</div> : null}
+                        {row.circleName ? <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '4px' }}>Circle: {row.circleName}</div> : null}
+                        {row.guestMessage ? <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '4px' }}>Message: {row.guestMessage}</div> : null}
                       </td>
                       <td style={{ padding: '16px', color: '#111827', fontWeight: '600' }}>{row.eventTitle}</td>
                       <td style={{ padding: '16px', color: '#111827' }}>{row.ticketTypeName}</td>
