@@ -186,13 +186,14 @@ describe('event ticket helpers', () => {
   });
 
   it('allows ticket registration using a custom share slug instead of the event id', async () => {
+    const uniqueSlug = `custom-link-event-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
     const event = await createEvent({
       title: 'Custom Link Event',
       description: 'This event is being registered from a custom share link.',
       venue: 'Lakeside Hall',
       date: '2027-04-10T18:30:00.000Z',
       status: 'published',
-      shareSlug: 'custom-link-event',
+      shareSlug: uniqueSlug,
       ticketTypes: [{ id: 'vip', name: 'VIP', price: 0, quantity: 25 }],
     });
 
@@ -209,13 +210,14 @@ describe('event ticket helpers', () => {
   });
 
   it('keeps the current share slug when an event is edited without changing it', async () => {
+    const uniqueSlug = `stable-link-event-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
     const event = await createEvent({
       title: 'Stable Link Event',
       description: 'The URL should remain stable while content is updated.',
       venue: 'North Hall',
       date: '2027-05-12T18:00:00.000Z',
       status: 'published',
-      shareSlug: 'stable-link-event',
+      shareSlug: uniqueSlug,
       ticketTypes: [{ id: 'general', name: 'General', price: 0, quantity: 40 }],
     });
 
@@ -232,7 +234,7 @@ describe('event ticket helpers', () => {
       ticketTypes: event.ticketTypes,
     });
 
-    assert.equal(updated.shareSlug, 'stable-link-event');
+    assert.equal(updated.shareSlug, uniqueSlug);
     assert.equal(updated.title, 'Stable Link Event Updated');
   });
 });

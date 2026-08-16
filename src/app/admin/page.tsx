@@ -145,6 +145,12 @@ export default function AdminDashboard() {
   };
 
   const handleEventRegistrationAction = async (reference: string, action: 'approve' | 'reject') => {
+    const nextStatus = action === 'approve' ? 'APPROVED' : 'REJECTED';
+
+    setEventRegistrations((current) => current.map((registration) =>
+      registration.reference === reference ? { ...registration, approvalStatus: nextStatus } : registration
+    ));
+
     try {
       const response = await fetch(`/api/events/tickets/${encodeURIComponent(reference)}`, {
         method: 'POST',
@@ -152,11 +158,14 @@ export default function AdminDashboard() {
         body: JSON.stringify({ action }),
       });
 
-      if (response.ok) {
+      if (!response.ok) {
+        await fetchEventRegistrations();
+      } else {
         await fetchEventRegistrations();
       }
     } catch (error) {
       console.error(`Failed to ${action} event registration:`, error);
+      await fetchEventRegistrations();
     }
   };
 

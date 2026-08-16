@@ -55,6 +55,14 @@ export default function AdminApprovalsPage() {
   }, []);
 
   const handleAction = async (reference: string, action: 'approve' | 'reject' | 'delete') => {
+    const nextStatus = action === 'approve' ? 'APPROVED' : action === 'reject' ? 'REJECTED' : null;
+
+    if (nextStatus) {
+      setRows((current) => current.map((row) => row.reference === reference ? { ...row, approvalStatus: nextStatus } : row));
+    } else {
+      setRows((current) => current.filter((row) => row.reference !== reference));
+    }
+
     try {
       const response = await fetch(`/api/events/tickets/${encodeURIComponent(reference)}`, {
         method: action === 'delete' ? 'DELETE' : 'POST',
@@ -62,11 +70,14 @@ export default function AdminApprovalsPage() {
         body: action === 'delete' ? undefined : JSON.stringify({ action }),
       });
 
-      if (response.ok) {
+      if (!response.ok) {
+        await fetchRows();
+      } else {
         await fetchRows();
       }
     } catch (error) {
       console.error(`Failed to ${action} event registration:`, error);
+      await fetchRows();
     }
   };
 
