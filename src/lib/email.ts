@@ -227,7 +227,7 @@ export function getEventRegistrationApprovedEmail(data: {
           </div>
           <div class="qr-code">
             <h3 style="margin-top: 0;">Your QR code</h3>
-            <img src="${data.qrCode}" alt="Event QR Code" width="260" height="260" style="width: 260px; height: 260px; display: block; margin: 0 auto; border: 1px solid #e5e7eb; background: white; border-radius: 8px;" />
+            <img src="cid:event-qr" alt="Event QR Code" width="260" height="260" onerror="this.onerror=null;this.src='${data.qrCode}';" style="width: 260px; height: 260px; display: block; margin: 0 auto; border: 1px solid #e5e7eb; background: white; border-radius: 8px;" />
             <p style="color: #6b7280; font-size: 14px; margin: 10px 0 0 0;">
               Please present this QR code at the event entrance when you arrive.
             </p>
