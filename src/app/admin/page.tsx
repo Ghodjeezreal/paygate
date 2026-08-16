@@ -124,7 +124,7 @@ export default function AdminDashboard() {
 
   const fetchEventRegistrations = useCallback(async () => {
     try {
-      const response = await fetch('/api/admin/event-tickets');
+      const response = await fetch('/api/admin/event-tickets?status=ALL');
       const data = await response.json();
       if (response.ok) {
         setEventRegistrations(data.tickets || []);
@@ -159,6 +159,8 @@ export default function AdminDashboard() {
       console.error(`Failed to ${action} event registration:`, error);
     }
   };
+
+  const pendingReviewCount = eventRegistrations.filter((registration) => registration.approvalStatus !== 'APPROVED').length;
 
   const exportToCSV = () => {
     // Prepare CSV data
@@ -370,7 +372,7 @@ export default function AdminDashboard() {
               <div style={{ fontSize: '12px', fontWeight: '700', letterSpacing: '0.08em', color: '#6b7280', textTransform: 'uppercase', marginBottom: '4px' }}>
                 Event approvals
               </div>
-              <h2 style={{ fontSize: '22px', fontWeight: 'bold', color: '#111827', margin: 0 }}>Pending registrations</h2>
+              <h2 style={{ fontSize: '22px', fontWeight: 'bold', color: '#111827', margin: 0 }}>Recent registrations</h2>
             </div>
             <div style={{
               backgroundColor: '#f3f4f6',
@@ -380,13 +382,13 @@ export default function AdminDashboard() {
               fontWeight: '700',
               color: '#374151'
             }}>
-              {eventRegistrations.length} awaiting review
+              {pendingReviewCount} awaiting review
             </div>
           </div>
 
           {eventRegistrations.length === 0 ? (
             <div style={{ padding: '20px', backgroundColor: '#f9fafb', borderRadius: '12px', color: '#6b7280', textAlign: 'center' }}>
-              No event registrations are waiting for approval.
+              No event registrations have been submitted yet.
             </div>
           ) : (
             <div style={{ display: 'grid', gap: '12px' }}>
